@@ -51,10 +51,10 @@ export default {
             <!-- Level detail -->
             <section class="level-container">
                 <div class="level" v-if="level">
-                    <header class="level-header">
+                    <div class="level-header">
                         <h1>{{ level.name }}</h1>
                         <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
-                    </header>
+                    </div>
 
                     <div class="video-wrap">
                         <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
