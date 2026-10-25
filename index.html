@@ -23,24 +23,25 @@
             href="/css/pages/leaderboard.css"
         />
         <link rel="stylesheet" type="text/css" href="/css/pages/roulette.css" />
-        <link rel="stylesheet" type="text/css" href="/css/components/nav.css" />
         <link rel="stylesheet" type="text/css" href="/css/components/btn.css" />
         <link
             rel="stylesheet"
             type="text/css"
             href="/css/components/tabs.css"
         />
-        <script src="https://unpkg.com/vue@3.2.31/dist/vue.global.js"></script>
+        <!-- nav.css last so the new top bar wins -->
+        <link rel="stylesheet" type="text/css" href="/css/components/nav.css" />
+        <script src="https://unpkg.com/vue@3.2.31/dist/vue.global.prod.js"></script>
         <script src="https://unpkg.com/vue-router@4.0.14/dist/vue-router.global.prod.js"></script>
         <script type="module" src="/js/main.js"></script>
     </head>
     <body id="app">
-        <header :class="{ dark: store.dark }">
+        <header class="topbar" :class="{ dark: store.dark }">
             <div class="logo">
                 <h2>Sample List</h2>
-                <p>v1.0.0</p>
+                <span class="logo__ver">v1.0.0</span>
             </div>
-            <nav class="nav">
+            <nav class="nav" aria-label="Main">
                 <router-link class="nav__tab" to="/">
                     <span class="type-label-lg">List</span>
                 </router-link>
@@ -53,6 +54,7 @@
                 <div class="nav__actions">
                     <button
                         class="nav__icon"
+                        aria-label="Toggle dark mode"
                         @click.prevent="store.toggleDark()"
                     >
                         <img
@@ -61,8 +63,8 @@
                         />
                     </button>
                     <!-- Replace the '#' with your discord server's invite-->
-                    <a class="nav__icon" href="#">
-                        <img src="/assets/discord.svg" alt="Discord Logo" />
+                    <a class="nav__icon" href="#" aria-label="Discord">
+                        <img src="/assets/discord.svg" alt="" />
                     </a>
                     <!-- List record submission form, add a link to replace the '#' when putting a link to your list submission form-->
                     <a
