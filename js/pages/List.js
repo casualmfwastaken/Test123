@@ -1,165 +1,209 @@
-/* Demonlist page: modern theme. Load after your existing styles. */
-:root {
-    --bg: #f5f6f9;
-    --surface: #ffffff;
-    --surface-2: #eef0f5;
-    --line: #dfe3ec;
-    --text: #151a24;
-    --muted: #667085;
-    --accent: #5b6cff;
-    --accent-soft: rgba(91, 108, 255, 0.12);
-    --danger: #e5484d;
-    --radius: 12px;
-    --radius-sm: 8px;
-}
-body.dark, .dark, [data-theme="dark"] {
-    --bg: #0f1219;
-    --surface: #171c26;
-    --surface-2: #1e2430;
-    --line: #2a3140;
-    --text: #e8ecf4;
-    --muted: #8d97ab;
-    --accent: #8896ff;
-    --accent-soft: rgba(136, 150, 255, 0.16);
-    --danger: #ff6b70;
-}
+import { store } from "../main.js";
+import { embed } from "../util.js";
+import { score } from "../score.js";
+import { fetchEditors, fetchList } from "../content.js";
 
-.page-list {
-    display: grid;
-    grid-template-columns: 320px minmax(0, 1fr) 300px;
-    gap: 20px;
-    align-items: start;
-    max-width: 1500px;
-    margin: 0 auto;
-    padding: 20px;
-    color: var(--text);
-    background: var(--bg);
-    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-.page-loading { display: grid; place-items: center; min-height: 60vh; }
+import Spinner from "../components/Spinner.js";
+import LevelAuthors from "../components/List/LevelAuthors.js";
 
-/* Shared panel look */
-.list-container, .level-container, .meta-container {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-}
+const roleIconMap = {
+    owner: "crown",
+    admin: "user-gear",
+    helper: "user-shield",
+    dev: "code",
+    trial: "user-lock",
+};
 
-/* ---------- Ranking ---------- */
-.list-container {
-    position: sticky;
-    top: 20px;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
-    padding: 12px;
-    scrollbar-width: thin;
-}
-.list-search {
-    width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 10px;
-    padding: 10px 12px;
-    color: var(--text);
-    background: var(--surface-2);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    font: inherit;
-    font-size: 0.9rem;
-}
-.list-search:focus { outline: none; border-color: var(--accent); }
+export default {
+    components: { Spinner, LevelAuthors },
+    template: `
+        <main v-if="loading" class="page-loading">
+            <Spinner></Spinner>
+        </main>
+        <main v-else class="page-list">
+            <!-- Ranking -->
+            <aside class="list-container">
+                <input
+                    class="list-search"
+                    type="search"
+                    v-model="query"
+                    placeholder="Search levels"
+                    aria-label="Search levels"
+                />
+                <table class="list" v-if="list">
+                    <tr v-for="item in filteredList" :key="item.i">
+                        <td class="rank">
+                            <p v-if="item.i + 1 <= 150" class="type-label-lg">#{{ item.i + 1 }}</p>
+                            <p v-else class="type-label-lg legacy">Legacy</p>
+                        </td>
+                        <td class="level" :class="{ active: selected == item.i, error: !item.level }">
+                            <button @click="selected = item.i">
+                                <span class="type-label-lg">{{ item.level?.name || \`Error (\${item.err}.json)\` }}</span>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr v-if="filteredList.length === 0">
+                        <td class="empty" colspan="2">No levels match "{{ query }}".</td>
+                    </tr>
+                </table>
+            </aside>
 
-.list { width: 100%; border-collapse: separate; border-spacing: 0 2px; }
-.list .rank { width: 56px; padding-left: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.list .rank .legacy { font-size: 0.75rem; }
-.list .level { border-radius: var(--radius-sm); }
-.list .level button {
-    width: 100%;
-    padding: 10px 12px;
-    text-align: left;
-    color: var(--text);
-    background: none;
-    border: 0;
-    border-radius: var(--radius-sm);
-    font: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.list .level button:hover { background: var(--surface-2); }
-.list .level.active button {
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 600;
-}
-.list .level.error button { color: var(--danger); }
-.list .empty { padding: 16px 10px; color: var(--muted); font-size: 0.9rem; }
+            <!-- Level detail -->
+            <section class="level-container">
+                <div class="level" v-if="level">
+                    <header class="level-header">
+                        <h1>{{ level.name }}</h1>
+                        <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
+                    </header>
 
-/* ---------- Level detail ---------- */
-.level-container { padding: 28px; min-width: 0; }
-.level { display: flex; flex-direction: column; gap: 20px; }
-.level-empty { min-height: 300px; justify-content: center; align-items: center; color: var(--muted); }
-.level-header h1 { margin: 0 0 6px; font-size: 2rem; letter-spacing: -0.02em; line-height: 1.15; }
+                    <div class="video-wrap">
+                        <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <div class="video-toggle" v-if="level.showcase">
+                        <button :class="{ on: !toggledShowcase }" @click="toggledShowcase = false">Verification</button>
+                        <button :class="{ on: toggledShowcase }" @click="toggledShowcase = true">Showcase</button>
+                    </div>
 
-.video-wrap { aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; background: #000; }
-.video { width: 100%; height: 100%; border: 0; display: block; }
+                    <ul class="stats">
+                        <li>
+                            <div class="type-title-sm">Points when completed</div>
+                            <p>{{ score(selected + 1, 100, level.percentToQualify) }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">ID</div>
+                            <p>{{ level.id }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">Password</div>
+                            <p>{{ level.password || 'Free to Copy' }}</p>
+                        </li>
+                    </ul>
 
-.video-toggle { display: inline-flex; align-self: flex-start; padding: 3px; background: var(--surface-2); border-radius: 999px; }
-.video-toggle button {
-    padding: 6px 14px;
-    color: var(--muted);
-    background: none;
-    border: 0;
-    border-radius: 999px;
-    font: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-.video-toggle button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+                    <div class="records-head">
+                        <h2>Records</h2>
+                        <p v-if="selected + 1 <= 75" class="qualify"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
+                        <p v-else-if="selected + 1 <= 150" class="qualify"><strong>100%</strong> or better to qualify</p>
+                        <p v-else class="qualify closed">This level does not accept new records.</p>
+                    </div>
+                    <table class="records">
+                        <tr v-for="record in level.records" class="record">
+                            <td class="percent">
+                                <p>{{ record.percent }}%</p>
+                            </td>
+                            <td class="user">
+                                <a :href="record.link" target="_blank" rel="noopener" class="type-label-lg">{{ record.user }}</a>
+                            </td>
+                            <td class="mobile">
+                                <img v-if="record.mobile" :src="\`/assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
+                            </td>
+                            <td class="hz">
+                                <p>{{ record.hz }}Hz</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div v-else class="level level-empty">
+                    <p>(ノಠ益ಠ)ノ彡┻━┻</p>
+                </div>
+            </section>
 
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
-.stats li { padding: 14px 16px; background: var(--surface-2); border-radius: var(--radius-sm); min-width: 0; }
-.stats .type-title-sm { margin-bottom: 4px; color: var(--muted); font-size: 0.8rem; font-weight: 500; }
-.stats p { margin: 0; font-size: 1.15rem; font-weight: 600; overflow-wrap: anywhere; }
+            <!-- Meta -->
+            <aside class="meta-container">
+                <div class="meta">
+                    <div class="errors" v-show="errors.length > 0">
+                        <p class="error" v-for="error of errors">{{ error }}</p>
+                    </div>
 
-.records-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 4px; }
-.records-head h2 { margin: 0; font-size: 1.25rem; }
-.qualify { margin: 0; color: var(--muted); font-size: 0.9rem; }
-.qualify strong { color: var(--accent); }
-.qualify.closed { color: var(--danger); }
+                    <template v-if="editors">
+                        <h3>List editors</h3>
+                        <ol class="editors">
+                            <li v-for="editor in editors">
+                                <img :src="\`/assets/\${roleIconMap[editor.role]}\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
+                                <a v-if="editor.link" class="type-label-lg link" target="_blank" rel="noopener" :href="editor.link">{{ editor.name }}</a>
+                                <p v-else>{{ editor.name }}</p>
+                            </li>
+                        </ol>
+                    </template>
 
-.records { width: 100%; border-collapse: collapse; }
-.record td { padding: 12px 8px; border-top: 1px solid var(--line); vertical-align: middle; }
-.record p { margin: 0; }
-.record .percent { width: 70px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.record .user a { color: var(--text); text-decoration: none; }
-.record .user a:hover { color: var(--accent); text-decoration: underline; }
-.record .mobile { width: 36px; }
-.record .mobile img { height: 18px; display: block; }
-.record .hz { width: 70px; text-align: right; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+                    <h3>Submission requirements</h3>
+                    <ul class="requirements">
+                        <li>Achieved the record without using hacks (FPS bypass is allowed, up to 360fps).</li>
+                        <li>Achieved the record on the level listed on the site. Check the level ID before you submit.</li>
+                        <li>Have either source audio or clicks/taps in the video. Edited audio only does not count.</li>
+                        <li>Show a previous attempt and the entire death animation before the completion, unless it is a first-attempt completion. Everyplay records are exempt.</li>
+                        <li>Show the player hit the endwall, or the completion is invalidated.</li>
+                        <li>Do not use secret routes or bug routes.</li>
+                        <li>Do not use easy modes. Only the unmodified level qualifies.</li>
+                        <li>Once a level falls onto the Legacy List, records are accepted for 24 hours after it falls off. After that, never.</li>
+                    </ul>
 
-/* ---------- Meta ---------- */
-.meta-container { position: sticky; top: 20px; padding: 20px; max-height: calc(100vh - 40px); overflow-y: auto; scrollbar-width: thin; }
-.meta h3 { margin: 22px 0 10px; font-size: 1rem; }
-.meta h3:first-child, .errors + h3 { margin-top: 0; }
-.errors .error { margin: 0 0 8px; padding: 10px 12px; color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); border-radius: var(--radius-sm); font-size: 0.85rem; }
-.editors { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.editors li { display: flex; align-items: center; gap: 10px; }
-.editors img { width: 18px; height: 18px; }
-.editors p { margin: 0; }
-.editors a, .og a { color: var(--accent); text-decoration: none; }
-.editors a:hover, .og a:hover { text-decoration: underline; }
-.requirements { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.85rem; line-height: 1.55; display: grid; gap: 8px; }
-.og { margin: 24px 0 0; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; }
+                    <p class="og type-label-md">Website layout made by <a href="https://tsl.pages.dev/" target="_blank" rel="noopener">TheShittyList</a></p>
+                </div>
+            </aside>
+        </main>
+    `,
+    data: () => ({
+        list: [],
+        editors: [],
+        loading: true,
+        selected: 0,
+        query: "",
+        toggledShowcase: false,
+        errors: [],
+        roleIconMap,
+        store
+    }),
+    computed: {
+        // Keeps the original index so rank stays correct while searching
+        filteredList() {
+            const q = this.query.trim().toLowerCase();
+            return (this.list || [])
+                .map(([level, err], i) => ({ level, err, i }))
+                .filter(({ level }) => !q || level?.name?.toLowerCase().includes(q));
+        },
+        level() {
+            return this.list?.[this.selected]?.[0];
+        },
+        video() {
+            if (!this.level) return "";
+            if (!this.level.showcase) {
+                return embed(this.level.verification);
+            }
+            return embed(
+                this.toggledShowcase
+                    ? this.level.showcase
+                    : this.level.verification
+            );
+        },
+    },
+    watch: {
+        selected() {
+            this.toggledShowcase = false;
+        },
+    },
+    async mounted() {
+        this.list = await fetchList();
+        this.editors = await fetchEditors();
 
-/* ---------- Responsive ---------- */
-@media (max-width: 1200px) {
-    .page-list { grid-template-columns: 280px minmax(0, 1fr); }
-    .meta-container { grid-column: 1 / -1; position: static; max-height: none; }
-}
-@media (max-width: 760px) {
-    .page-list { grid-template-columns: 1fr; padding: 12px; }
-    .list-container { position: static; max-height: 320px; }
-    .level-container { padding: 18px; }
-    .stats { grid-template-columns: 1fr; }
-}
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+        if (!this.list) {
+            this.errors = [
+                "Failed to load list. Retry in a few minutes or notify list staff.",
+            ];
+        } else {
+            this.errors.push(
+                ...this.list
+                    .filter(([_, err]) => err)
+                    .map(([_, err]) => `Failed to load level. (${err}.json)`)
+            );
+            if (!this.editors) {
+                this.errors.push("Failed to load list editors.");
+            }
+        }
+
+        this.loading = false;
+    },
+    methods: {
+        embed,
+        score,
+    },
+};
