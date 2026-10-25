@@ -1,54 +1,69 @@
-.nav {
-    display: flex;
+/* css/components/nav.css: top bar. Replaces the old file. */
+:root { --gutter: 1.25rem; }
+
+/* Same side gutter on every page so the bar lines up with the columns */
+body > main { padding-inline: var(--gutter); }
+
+header.topbar {
+    --line: color-mix(in srgb, var(--color-on-background) 14%, transparent);
+    --soft: color-mix(in srgb, var(--color-on-background) 7%, transparent);
+    --muted: color-mix(in srgb, var(--color-on-background) 62%, transparent);
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) minmax(16rem, 2fr) minmax(16em, 1fr);
     column-gap: 2rem;
-}
-.nav .nav__tab {
-    padding-top: 4px;
-    border-bottom: 4px solid transparent;
-    display: flex;
     align-items: center;
-    padding-inline: 0.5rem;
-    transition: border-color 100ms ease;
+    flex: none;
+    box-sizing: border-box;
+    height: 3.75rem;
+    padding-inline: var(--gutter);
+    background: var(--color-background);
+    color: var(--color-on-background);
+    border-bottom: 1px solid var(--line);
+    font-family: "Lexend Deca", system-ui, sans-serif;
 }
-.nav .nav__tab.router-link-active {
-    border-color: var(--color-on-primary);
+
+.topbar .logo { justify-self: start; display: flex; align-items: center; gap: 0.6rem; }
+.topbar .logo h2 { margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
+.topbar .logo__ver { padding: 0.2rem 0.5rem; background: var(--soft); color: var(--muted); border-radius: 999px; font-size: 0.7rem; line-height: 1; }
+
+.topbar .nav { grid-column: 2 / -1; display: flex; align-items: center; gap: 0.25rem; height: 100%; }
+
+.topbar .nav__tab {
+    display: inline-flex; align-items: center;
+    height: 2.25rem; padding-inline: 1rem;
+    color: var(--muted);
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background-color 0.2s, color 0.2s;
 }
-.nav .nav__tab:hover {
-    border-color: var(--color-on-primary);
-}
-.nav .nav__actions {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-.nav .nav__actions .nav__icon {
-    height: 3rem;
-    width: 3rem;
-    border: none;
-    background-color: transparent;
-    border-radius: 50%;
+.topbar .nav__tab:hover { background: var(--soft); color: var(--color-on-background); }
+.topbar .nav__tab.router-link-exact-active { background: var(--color-primary); color: var(--color-on-primary); }
+.topbar .nav__tab .type-label-lg { font-size: 0.9rem; }
+
+.topbar .nav__actions { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+
+.topbar .nav__icon {
+    display: grid; place-items: center;
+    width: 2.25rem; height: 2.25rem; padding: 0;
+    background: transparent; border: 0; border-radius: 50%;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 100ms ease;
+    transition: background-color 0.2s;
 }
-.nav .nav__actions .nav__icon:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+.topbar .nav__icon:hover { background: var(--soft); }
+.topbar .nav__icon img { width: 1.25rem; height: 1.25rem; }
+/* The icons are white, so flip them on the light bar */
+header.topbar:not(.dark) .nav__icon img { filter: invert(1); }
+
+.topbar .nav__cta {
+    display: inline-flex; align-items: center;
+    height: 2.25rem; padding-inline: 1.1rem;
+    background: var(--color-primary); color: var(--color-on-primary);
+    border: 0; border-radius: 999px;
+    font-size: 0.9rem; text-decoration: none;
+    transition: filter 0.2s, transform 0.2s;
 }
-.nav .nav__actions .nav__icon img {
-    height: 1.5rem;
-}
-.nav .nav__actions .nav__cta {
-    margin-left: 1rem;
-    padding: 1rem;
-    background-color: var(--color-on-primary);
-    color: var(--color-primary);
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 0.5rem 0 rgba(0, 0, 102, 0.5);
-    transition: transform 100ms ease;
-}
-.nav .nav__actions .nav__cta:hover:not(:active) {
-    transform: translateY(-2px);
-}
+.topbar .nav__cta:hover { filter: brightness(1.12); }
+.topbar .nav__cta:active { transform: scale(0.97); }
+
+.topbar :focus-visible { outline: 2px solid var(--color-on-background); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .topbar * { transition: none !important; } }
