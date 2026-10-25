@@ -188,11 +188,19 @@ main.page-list > * {
 .page-list .meta .editors li { display: flex; align-items: center; gap: 0.6rem; }
 .page-list .meta .editors li img { height: 1.1rem; }
 .page-list .meta .editors li p { margin: 0; }
-.page-list .meta .editors li a:hover, .page-list .meta-container .og a:hover { text-decoration: underline; }
 .page-list .requirements { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.6rem; color: var(--muted); }
 .page-list .requirements li { font-size: 0.8rem; line-height: 1.55; }
-.page-list .meta .og { margin: 0; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.75rem; }
-.page-list .meta .og a { color: var(--color-on-background); text-decoration: underline; }
 
 .page-list :focus-visible { outline: 2px solid var(--color-on-background); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .page-list *, .page-list *::before { transition: none !important; } }
+
+/* Password copy button */
+.page-list .stats .pw { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.page-list .copy {
+    flex: none; padding: 0.25rem 0.7rem;
+    color: var(--color-on-primary); background: var(--color-primary);
+    border: 0; border-radius: 999px; font-size: 0.7rem; font-weight: 500; cursor: pointer;
+    transition: filter 0.15s, transform 0.15s;
+}
+.page-list .copy:hover { filter: brightness(1.12); }
+.page-list .copy:active { transform: scale(0.95); }
