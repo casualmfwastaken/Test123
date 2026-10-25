@@ -147,7 +147,10 @@ export default {
                             </li>
                             <li>
                                 <div class="type-title-sm">Password</div>
-                                <p>{{ level.password || 'Free to Copy' }}</p>
+                                <p class="pw">
+                                    <span>{{ level.password || 'Free to Copy' }}</span>
+                                    <button type="button" class="copy" v-if="level.password" @click="copyPassword" :aria-label="copied ? 'Password copied' : 'Copy password'">{{ copied ? 'Copied' : 'Copy' }}</button>
+                                </p>
                             </li>
                         </ul>
 
@@ -206,8 +209,6 @@ export default {
                         <li>Do not use easy modes. Only the unmodified level qualifies.</li>
                         <li>Once a level falls onto the Legacy List, records are accepted for 24 hours after it falls off. After that, never.</li>
                     </ul>
-
-                    <p class="og type-label-md">Website layout made by <a href="https://tsl.pages.dev/" target="_blank" rel="noopener">TheShittyList</a></p>
                 </div>
             </aside>
         </main>
@@ -219,6 +220,8 @@ export default {
         selectedKey: null,
         query: "",
         toggledShowcase: false,
+        copied: false,
+        copyTimer: null,
         errors: [],
         // time machine
         history: [],
@@ -292,15 +295,21 @@ export default {
     watch: {
         "selectedItem.key"() {
             this.toggledShowcase = false;
+            this.copied = false;
         },
         sliderIndex(i) {
             this.applyTime(i);
         },
     },
     async mounted() {
-        this.list = await fetchList();
-        this.editors = await fetchEditors();
-        this.history = await fetchHistory();
+        const [list, editors, history] = await Promise.all([
+            fetchList(),
+            fetchEditors(),
+            fetchHistory(),
+        ]);
+        this.list = list;
+        this.editors = editors;
+        this.history = history;
         this.timeIndex = this.sliderIndex = this.history.length;
 
         if (!this.list) {
@@ -325,6 +334,22 @@ export default {
         fmt,
         step(d) {
             this.sliderIndex = Math.min(this.history.length, Math.max(0, this.sliderIndex + d));
+        },
+        async copyPassword() {
+            const text = String(this.level.password);
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch {
+                const t = document.createElement("textarea");
+                t.value = text;
+                document.body.appendChild(t);
+                t.select();
+                try { document.execCommand("copy"); } catch {}
+                t.remove();
+            }
+            this.copied = true;
+            clearTimeout(this.copyTimer);
+            this.copyTimer = setTimeout(() => (this.copied = false), 1500);
         },
         toToday() {
             this.sliderIndex = this.history.length;
