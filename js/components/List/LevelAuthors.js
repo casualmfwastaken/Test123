@@ -2,15 +2,15 @@ export default {
     props: {
         author: {
             type: String,
-            required: true,
+            default: "",
         },
         creators: {
             type: Array,
-            required: true,
+            default: () => [],
         },
         verifier: {
             type: String,
-            required: true,
+            default: "",
         },
     },
     template: `
@@ -28,7 +28,7 @@ export default {
                 </p>
                 <div class="type-title-sm">Verifier</div>
                 <p class="type-body">
-                    <span>{{ verifier }}</span>
+                    <span>{{ verifierText }}</span>
                 </p>
             </template>
             <template v-else>
@@ -41,7 +41,7 @@ export default {
                 </p>
                 <div class="type-title-sm">Verifier</div>
                 <p class="type-body">
-                    <span>{{ verifier }}</span>
+                    <span>{{ verifierText }}</span>
                 </p>
             </template>
             <div class="type-title-sm">Publisher</div>
@@ -52,8 +52,18 @@ export default {
     `,
 
     computed: {
+        hasVerifier() {
+            return !!this.verifier;
+        },
+        verifierText() {
+            return this.hasVerifier ? this.verifier : "No verifier";
+        },
         selfVerified() {
-            return this.author === this.verifier && this.creators.length === 0;
+            return (
+                this.hasVerifier &&
+                this.author === this.verifier &&
+                this.creators.length === 0
+            );
         },
     },
 };
