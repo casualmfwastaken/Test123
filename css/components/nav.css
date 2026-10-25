@@ -67,3 +67,37 @@ header.topbar:not(.dark) .nav__icon img { filter: invert(1); }
 
 .topbar :focus-visible { outline: 2px solid var(--color-on-background); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .topbar * { transition: none !important; } }
+
+/* ---------- Page transitions and route bar ---------- */
+:root { --header-h: 3.75rem; }
+body { position: relative; }
+header.topbar { position: relative; }
+
+.page-enter-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.page-enter-from { opacity: 0; transform: translateY(10px); }
+.page-leave-active {
+    position: absolute; top: var(--header-h); left: 0; right: 0;
+    height: calc(100% - var(--header-h));
+    transition: opacity 0.18s ease;
+}
+.page-leave-to { opacity: 0; }
+
+.topbar .route-bar {
+    position: absolute; left: 0; bottom: -1px;
+    width: 100%; height: 2px;
+    background: var(--color-primary);
+    transform: scaleX(0); transform-origin: left; opacity: 0;
+    pointer-events: none;
+    animation: route-bar 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+header.topbar.dark .route-bar { background: color-mix(in srgb, var(--color-primary) 35%, white); }
+@keyframes route-bar {
+    0% { transform: scaleX(0); opacity: 1; }
+    70% { transform: scaleX(0.9); opacity: 1; }
+    85% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .page-enter-active, .page-leave-active { transition: none; }
+    .topbar .route-bar { animation: none; }
+}
