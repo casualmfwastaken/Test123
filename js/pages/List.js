@@ -40,11 +40,20 @@ export default {
     }),
     computed: {
         level() {
-            return this.list[this.selected] ? this.list[this.selected] : null;
+            return this.list[this.selected] ? this.list[this.selected][0] : null;
         },
         video() {
             if (!this.level) return '';
-            return this.embed(this.toggledShowcase && this.level.showcase ? this.level.showcase : this.level.verification);
+            
+            // Determine our primary target video source URL string safely
+            const targetUrl = this.toggledShowcase && this.level.showcase 
+                ? this.level.showcase 
+                : this.level.verification;
+                
+            // Safety guard: If the URL string is missing or empty, skip embed parsing entirely
+            if (!targetUrl) return '';
+            
+            return this.embed(targetUrl);
         }
     },
     async mounted() {
@@ -93,8 +102,11 @@ export default {
                         <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
                     </header>
 
-                    <div class="vid-wrap">
+                    <div class="vid-wrap" v-if="video">
                         <iframe :src="video" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <div class="vid-wrap empty" v-else>
+                        <p>No showcase or verification video available for this level.</p>
                     </div>
                     
                     <div class="stats-grid">
