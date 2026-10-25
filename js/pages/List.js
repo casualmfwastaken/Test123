@@ -32,6 +32,7 @@ export default {
         editors: [],
         loading: true,
         selected: 0,
+        toggledShowcase: false,
         errors: [],
         roleIconMap,
         submissionRequirements,
@@ -39,7 +40,7 @@ export default {
     }),
     computed: {
         level() {
-            return this.list[this.selected] ? this.list[this.selected][0] : null;
+            return this.list[this.selected] ? this.list[this.selected] : null;
         },
         video() {
             if (!this.level) return '';
