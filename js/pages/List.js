@@ -6,6 +6,8 @@ import { fetchEditors, fetchList } from "../content.js";
 import Spinner from "../components/Spinner.js";
 import LevelAuthors from "../components/List/LevelAuthors.js";
 
+const dir = "/data"; // folder that holds _list.json and the level files
+
 const roleIconMap = {
     owner: "crown",
     admin: "user-gear",
@@ -13,6 +15,46 @@ const roleIconMap = {
     dev: "code",
     trial: "user-lock",
 };
+
+const keyOf = ([level, err]) => level?.path ?? err ?? level?.name;
+const fmt = (d) =>
+    new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+
+// Time machine data: [{ date: "YYYY-MM-DD", label?: string, list: ["level-file", ...] }]
+async function fetchHistory() {
+    try {
+        const res = await fetch(`${dir}/_history.json`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data
+            .filter((s) => s && s.date && Array.isArray(s.list))
+            .sort((a, b) => (a.date < b.date ? -1 : 1));
+    } catch {
+        return [];
+    }
+}
+
+// Loads a level that is no longer on the current list
+async function fetchLevel(path) {
+    try {
+        const res = await fetch(`${dir}/${path}.json`);
+        const level = await res.json();
+        return [
+            {
+                ...level,
+                path,
+                records: [...(level.records || [])].sort((a, b) => b.percent - a.percent),
+            },
+            null,
+        ];
+    } catch {
+        return [null, path];
+    }
+}
 
 export default {
     components: { Spinner, LevelAuthors },
@@ -23,88 +65,116 @@ export default {
         <main v-else class="page-list">
             <!-- Ranking -->
             <aside class="list-container">
-                <input
-                    class="list-search"
-                    type="search"
-                    v-model="query"
-                    placeholder="Search levels"
-                    aria-label="Search levels"
-                />
-                <table class="list" v-if="list">
-                    <tr v-for="item in filteredList" :key="item.i">
-                        <td class="rank">
-                            <p v-if="item.i + 1 <= 150" class="type-label-lg">#{{ item.i + 1 }}</p>
-                            <p v-else class="type-label-lg legacy">Legacy</p>
-                        </td>
-                        <td class="level" :class="{ active: selected == item.i, error: !item.level }">
-                            <button @click="selected = item.i">
-                                <span class="type-label-lg">{{ item.level?.name || \`Error (\${item.err}.json)\` }}</span>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr v-if="filteredList.length === 0">
-                        <td class="empty" colspan="2">No levels match "{{ query }}".</td>
-                    </tr>
-                </table>
+                <div class="tm" v-if="history.length">
+                    <button type="button" class="tm-toggle" :class="{ on: !isToday }" :aria-expanded="panelOpen" @click="panelOpen = !panelOpen">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                        <span>Time machine</span>
+                        <span class="tm-when">{{ whenLabel }}</span>
+                    </button>
+                    <div class="tm-drawer" :class="{ open: panelOpen }" :inert="!panelOpen || null">
+                        <div class="tm-inner">
+                            <div class="tm-body">
+                                <div class="tm-read">
+                                    <strong>{{ whenLabel }}</strong>
+                                    <span v-if="snap">{{ fmt(snap.date) }}</span>
+                                </div>
+                                <div class="tm-track">
+                                    <button type="button" class="tm-step" aria-label="Go back one step" :disabled="sliderIndex <= 0" @click="step(-1)">&lsaquo;</button>
+                                    <input type="range" min="0" :max="history.length" step="1" v-model.number="sliderIndex" aria-label="Pick a point in time" />
+                                    <button type="button" class="tm-step" aria-label="Go forward one step" :disabled="sliderIndex >= history.length" @click="step(1)">&rsaquo;</button>
+                                </div>
+                                <div class="tm-ends">
+                                    <span>{{ fmt(history[0].date) }}</span>
+                                    <span>Today</span>
+                                </div>
+                                <button type="button" class="tm-reset" v-if="!isToday" @click="toToday">Back to today</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <input class="list-search" type="search" v-model="query" placeholder="Search levels" aria-label="Search levels" />
+
+                <transition-group name="flip" tag="ul" class="list" :class="{ busy: timeBusy }" v-if="list">
+                    <li v-for="item in filteredView" :key="item.key || item.rank" class="row" :class="{ active: item.key === selectedItem?.key, error: !item.level }">
+                        <span class="rank">
+                            <template v-if="item.rank <= 150">#{{ item.rank }}</template>
+                            <template v-else>Legacy</template>
+                        </span>
+                        <button type="button" class="name" @click="selectedKey = item.key">
+                            <span class="type-label-lg">{{ item.level?.name || \`Error (\${item.err}.json)\` }}</span>
+                            <small class="delta" v-if="delta(item)">{{ delta(item) }}</small>
+                        </button>
+                    </li>
+                    <li class="empty" key="empty" v-if="filteredView.length === 0">No levels match "{{ query }}".</li>
+                </transition-group>
             </aside>
 
             <!-- Level detail -->
             <section class="level-container">
-                <div class="level" v-if="level">
-                    <div class="level-header">
-                        <h1>{{ level.name }}</h1>
-                        <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
+                <div class="tm-banner" :class="{ open: !isToday }" :inert="isToday || null">
+                    <div class="tm-banner-inner">
+                        <div class="tm-banner-row">
+                            <p>Viewing the list as of <strong>{{ snap ? fmt(snap.date) : '' }}</strong></p>
+                            <button type="button" @click="toToday">Back to today</button>
+                        </div>
                     </div>
-
-                    <div class="video-wrap">
-                        <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
-                    </div>
-                    <div class="video-toggle" v-if="level.showcase">
-                        <button :class="{ on: !toggledShowcase }" @click="toggledShowcase = false">Verification</button>
-                        <button :class="{ on: toggledShowcase }" @click="toggledShowcase = true">Showcase</button>
-                    </div>
-
-                    <ul class="stats">
-                        <li>
-                            <div class="type-title-sm">Points when completed</div>
-                            <p>{{ score(selected + 1, 100, level.percentToQualify) }}</p>
-                        </li>
-                        <li>
-                            <div class="type-title-sm">ID</div>
-                            <p>{{ level.id }}</p>
-                        </li>
-                        <li>
-                            <div class="type-title-sm">Password</div>
-                            <p>{{ level.password || 'Free to Copy' }}</p>
-                        </li>
-                    </ul>
-
-                    <div class="records-head">
-                        <h2>Records</h2>
-                        <p v-if="selected + 1 <= 75" class="qualify"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
-                        <p v-else-if="selected + 1 <= 150" class="qualify"><strong>100%</strong> or better to qualify</p>
-                        <p v-else class="qualify closed">This level does not accept new records.</p>
-                    </div>
-                    <table class="records">
-                        <tr v-for="record in level.records" class="record">
-                            <td class="percent">
-                                <p>{{ record.percent }}%</p>
-                            </td>
-                            <td class="user">
-                                <a :href="record.link" target="_blank" rel="noopener" class="type-label-lg">{{ record.user }}</a>
-                            </td>
-                            <td class="mobile">
-                                <img v-if="record.mobile" :src="\`/assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
-                            </td>
-                            <td class="hz">
-                                <p>{{ record.hz }}Hz</p>
-                            </td>
-                        </tr>
-                    </table>
                 </div>
-                <div v-else class="level level-empty">
-                    <p>(ノಠ益ಠ)ノ彡┻━┻</p>
-                </div>
+
+                <transition name="swap" mode="out-in">
+                    <div class="level" v-if="level" :key="selectedItem.key">
+                        <div class="level-header">
+                            <h1>{{ level.name }}</h1>
+                            <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
+                        </div>
+
+                        <div class="video-wrap">
+                            <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                        <div class="video-toggle" v-if="level.showcase">
+                            <button type="button" :class="{ on: !toggledShowcase }" @click="toggledShowcase = false">Verification</button>
+                            <button type="button" :class="{ on: toggledShowcase }" @click="toggledShowcase = true">Showcase</button>
+                        </div>
+
+                        <ul class="stats">
+                            <li>
+                                <div class="type-title-sm">Points when completed</div>
+                                <p>{{ score(rank, 100, level.percentToQualify) }}</p>
+                            </li>
+                            <li>
+                                <div class="type-title-sm">ID</div>
+                                <p>{{ level.id }}</p>
+                            </li>
+                            <li>
+                                <div class="type-title-sm">Password</div>
+                                <p>{{ level.password || 'Free to Copy' }}</p>
+                            </li>
+                        </ul>
+
+                        <div class="records-head">
+                            <h2>Records</h2>
+                            <p v-if="!isToday" class="qualify">Records up to <strong>{{ fmt(snap.date) }}</strong></p>
+                            <p v-else-if="rank <= 75" class="qualify"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
+                            <p v-else-if="rank <= 150" class="qualify"><strong>100%</strong> or better to qualify</p>
+                            <p v-else class="qualify closed">This level does not accept new records.</p>
+                        </div>
+                        <table class="records">
+                            <tr v-for="record in records" class="record">
+                                <td class="percent"><p>{{ record.percent }}%</p></td>
+                                <td class="user">
+                                    <a :href="record.link" target="_blank" rel="noopener" class="type-label-lg">{{ record.user }}</a>
+                                </td>
+                                <td class="mobile">
+                                    <img v-if="record.mobile" :src="\`/assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
+                                </td>
+                                <td class="hz"><p>{{ record.hz }}Hz</p></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div v-else class="level level-empty" key="empty">
+                        <p>(ノಠ益ಠ)ノ彡┻━┻</p>
+                    </div>
+                </transition>
             </section>
 
             <!-- Meta -->
@@ -146,49 +216,95 @@ export default {
         list: [],
         editors: [],
         loading: true,
-        selected: 0,
+        selectedKey: null,
         query: "",
         toggledShowcase: false,
         errors: [],
+        // time machine
+        history: [],
+        extra: {}, // levels loaded from old snapshots
+        timeIndex: 0, // applied snapshot (history.length = today)
+        sliderIndex: 0, // what the slider shows
+        timeToken: 0,
+        timeBusy: false,
+        panelOpen: false,
         roleIconMap,
-        store
+        store,
     }),
     computed: {
-        // Keeps the original index so rank stays correct while searching
-        filteredList() {
+        byKey() {
+            const m = {};
+            for (const e of this.list || []) {
+                const k = keyOf(e);
+                if (k) m[k] = e;
+            }
+            return m;
+        },
+        currentRank() {
+            const m = {};
+            (this.list || []).forEach((e, i) => {
+                const k = keyOf(e);
+                if (k) m[k] = i + 1;
+            });
+            return m;
+        },
+        hasPaths() {
+            return (this.list || []).every(([l]) => !l || l.path);
+        },
+        isToday() {
+            return this.timeIndex >= this.history.length;
+        },
+        snap() {
+            return this.history[this.timeIndex] || null;
+        },
+        whenLabel() {
+            return this.snap ? this.snap.label || fmt(this.snap.date) : "Today";
+        },
+        view() {
+            const entries = this.snap
+                ? this.snap.list.map((p) => this.byKey[p] || this.extra[p] || [null, p])
+                : this.list || [];
+            return entries.map((e, i) => ({ level: e[0], err: e[1], key: keyOf(e), rank: i + 1 }));
+        },
+        filteredView() {
             const q = this.query.trim().toLowerCase();
-            return (this.list || [])
-                .map(([level, err], i) => ({ level, err, i }))
-                .filter(({ level }) => !q || level?.name?.toLowerCase().includes(q));
+            return this.view.filter((v) => !q || v.level?.name?.toLowerCase().includes(q));
+        },
+        selectedItem() {
+            return this.view.find((v) => v.key === this.selectedKey) || this.view[0];
         },
         level() {
-            return this.list?.[this.selected]?.[0];
+            return this.selectedItem?.level;
+        },
+        rank() {
+            return this.selectedItem?.rank;
+        },
+        records() {
+            const r = this.level?.records || [];
+            return this.snap ? r.filter((x) => !x.date || x.date <= this.snap.date) : r;
         },
         video() {
             if (!this.level) return "";
-            if (!this.level.showcase) {
-                return embed(this.level.verification);
-            }
-            return embed(
-                this.toggledShowcase
-                    ? this.level.showcase
-                    : this.level.verification
-            );
+            if (!this.level.showcase) return embed(this.level.verification);
+            return embed(this.toggledShowcase ? this.level.showcase : this.level.verification);
         },
     },
     watch: {
-        selected() {
+        "selectedItem.key"() {
             this.toggledShowcase = false;
+        },
+        sliderIndex(i) {
+            this.applyTime(i);
         },
     },
     async mounted() {
         this.list = await fetchList();
         this.editors = await fetchEditors();
+        this.history = await fetchHistory();
+        this.timeIndex = this.sliderIndex = this.history.length;
 
         if (!this.list) {
-            this.errors = [
-                "Failed to load list. Retry in a few minutes or notify list staff.",
-            ];
+            this.errors = ["Failed to load list. Retry in a few minutes or notify list staff."];
         } else {
             this.errors.push(
                 ...this.list
@@ -200,10 +316,44 @@ export default {
             }
         }
 
+        this.selectedKey = this.view[0]?.key ?? null;
         this.loading = false;
     },
     methods: {
         embed,
         score,
+        fmt,
+        step(d) {
+            this.sliderIndex = Math.min(this.history.length, Math.max(0, this.sliderIndex + d));
+        },
+        toToday() {
+            this.sliderIndex = this.history.length;
+        },
+        // Loads any levels the snapshot needs, then applies it (latest drag wins)
+        async applyTime(i) {
+            const token = ++this.timeToken;
+            const snap = this.history[i];
+            if (snap) {
+                const missing = snap.list.filter((p) => !this.byKey[p] && !(p in this.extra));
+                if (missing.length) {
+                    this.timeBusy = true;
+                    const loaded = await Promise.all(missing.map(fetchLevel));
+                    missing.forEach((p, n) => (this.extra[p] = loaded[n]));
+                    if (token !== this.timeToken) return;
+                }
+            }
+            this.timeBusy = false;
+            this.timeIndex = i;
+            if (!this.view.some((v) => v.key === this.selectedKey)) {
+                this.selectedKey = this.view[0]?.key ?? null;
+            }
+        },
+        // Small note next to a level when viewing the past
+        delta(item) {
+            if (this.isToday || !this.hasPaths || !item.key) return "";
+            const now = this.currentRank[item.key];
+            if (now === undefined) return "off list";
+            return now === item.rank ? "" : `now #${now}`;
+        },
     },
 };
