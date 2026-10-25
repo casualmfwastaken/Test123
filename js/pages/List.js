@@ -24,6 +24,23 @@ const fmt = (d) =>
         day: "numeric",
     });
 
+// Turns raw [level, err] entries into view items.
+// Unverified levels (no verifier) get no rank and don't take up a spot in the ranking.
+function build(entries) {
+    let r = 0;
+    return entries.map((e) => {
+        const level = e[0];
+        const unverified = !!level && !level.verifier;
+        return {
+            level,
+            err: e[1],
+            key: keyOf(e),
+            unverified,
+            rank: unverified ? null : ++r,
+        };
+    });
+}
+
 // Time machine data: [{ date: "YYYY-MM-DD", label?: string, list: ["level-file", ...] }]
 async function fetchHistory() {
     try {
@@ -93,12 +110,19 @@ export default {
                     </div>
                 </div>
 
+                <!-- Tabs (reuses the video-toggle styling) -->
+                <div class="video-toggle list-tabs" role="tablist">
+                    <button type="button" role="tab" :aria-selected="tab === 'ranked'" :class="{ on: tab === 'ranked' }" @click="tab = 'ranked'">Ranked</button>
+                    <button type="button" role="tab" :aria-selected="tab === 'unverified'" :class="{ on: tab === 'unverified' }" @click="tab = 'unverified'">Unverified ({{ unverifiedCount }})</button>
+                </div>
+
                 <input class="list-search" type="search" v-model="query" placeholder="Search levels" aria-label="Search levels" />
 
                 <transition-group name="flip" tag="ul" class="list" :class="{ busy: timeBusy }" v-if="list">
                     <li v-for="item in filteredView" :key="item.key || item.rank" class="row" :class="{ active: item.key === selectedItem?.key, error: !item.level }">
                         <span class="rank">
-                            <template v-if="item.rank <= 150">#{{ item.rank }}</template>
+                            <template v-if="item.unverified">Unverified</template>
+                            <template v-else-if="item.rank <= 150">#{{ item.rank }}</template>
                             <template v-else>Legacy</template>
                         </span>
                         <button type="button" class="name" @click="selectedKey = item.key">
@@ -106,7 +130,11 @@ export default {
                             <small class="delta" v-if="delta(item)">{{ delta(item) }}</small>
                         </button>
                     </li>
-                    <li class="empty" key="empty" v-if="filteredView.length === 0">No levels match "{{ query }}".</li>
+                    <li class="empty" key="empty" v-if="filteredView.length === 0">
+                        <template v-if="query.trim()">No levels match "{{ query }}".</template>
+                        <template v-else-if="tab === 'unverified'">No unverified levels.</template>
+                        <template v-else>No levels.</template>
+                    </li>
                 </transition-group>
             </aside>
 
@@ -125,13 +153,13 @@ export default {
                     <div class="level" v-if="level" :key="selectedItem.key">
                         <div class="level-header">
                             <h1>{{ level.name }}</h1>
-                            <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
+                            <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier || 'No verifier'"></LevelAuthors>
                         </div>
 
-                        <div class="video-wrap">
+                        <div class="video-wrap" v-if="video">
                             <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
                         </div>
-                        <div class="video-toggle" v-if="level.showcase">
+                        <div class="video-toggle" v-if="level.showcase && level.verification">
                             <button type="button" :class="{ on: !toggledShowcase }" @click="toggledShowcase = false">Verification</button>
                             <button type="button" :class="{ on: toggledShowcase }" @click="toggledShowcase = true">Showcase</button>
                         </div>
@@ -139,7 +167,8 @@ export default {
                         <ul class="stats">
                             <li>
                                 <div class="type-title-sm">Points when completed</div>
-                                <p>{{ score(rank, 100, level.percentToQualify) }}</p>
+                                <p v-if="selectedItem.unverified">N/A</p>
+                                <p v-else>{{ score(rank, 100, level.percentToQualify) }}</p>
                             </li>
                             <li>
                                 <div class="type-title-sm">ID</div>
@@ -156,12 +185,14 @@ export default {
 
                         <div class="records-head">
                             <h2>Records</h2>
-                            <p v-if="!isToday" class="qualify">Records up to <strong>{{ fmt(snap.date) }}</strong></p>
+                            <p v-if="selectedItem.unverified" class="qualify closed">This level is unverified and does not accept records yet.</p>
+                            <p v-else-if="!isToday" class="qualify">Records up to <strong>{{ fmt(snap.date) }}</strong></p>
                             <p v-else-if="rank <= 75" class="qualify"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
                             <p v-else-if="rank <= 150" class="qualify"><strong>100%</strong> or better to qualify</p>
                             <p v-else class="qualify closed">This level does not accept new records.</p>
                         </div>
-                        <table class="records">
+                        <p v-if="records.length === 0" class="no-records">No records</p>
+                        <table v-else class="records">
                             <tr v-for="record in records" class="record">
                                 <td class="percent"><p>{{ record.percent }}%</p></td>
                                 <td class="user">
@@ -219,6 +250,7 @@ export default {
         loading: true,
         selectedKey: null,
         query: "",
+        tab: "ranked", // "ranked" | "unverified"
         toggledShowcase: false,
         copied: false,
         copyTimer: null,
@@ -243,11 +275,11 @@ export default {
             }
             return m;
         },
+        // null = currently unverified, undefined = not on the current list
         currentRank() {
             const m = {};
-            (this.list || []).forEach((e, i) => {
-                const k = keyOf(e);
-                if (k) m[k] = i + 1;
+            build(this.list || []).forEach((item) => {
+                if (item.key) m[item.key] = item.rank;
             });
             return m;
         },
@@ -267,14 +299,22 @@ export default {
             const entries = this.snap
                 ? this.snap.list.map((p) => this.byKey[p] || this.extra[p] || [null, p])
                 : this.list || [];
-            return entries.map((e, i) => ({ level: e[0], err: e[1], key: keyOf(e), rank: i + 1 }));
+            return build(entries);
+        },
+        unverifiedCount() {
+            return this.view.filter((v) => v.unverified).length;
+        },
+        tabView() {
+            return this.view.filter((v) =>
+                this.tab === "unverified" ? v.unverified : !v.unverified
+            );
         },
         filteredView() {
             const q = this.query.trim().toLowerCase();
-            return this.view.filter((v) => !q || v.level?.name?.toLowerCase().includes(q));
+            return this.tabView.filter((v) => !q || v.level?.name?.toLowerCase().includes(q));
         },
         selectedItem() {
-            return this.view.find((v) => v.key === this.selectedKey) || this.view[0];
+            return this.tabView.find((v) => v.key === this.selectedKey) || this.tabView[0];
         },
         level() {
             return this.selectedItem?.level;
@@ -287,15 +327,20 @@ export default {
             return this.snap ? r.filter((x) => !x.date || x.date <= this.snap.date) : r;
         },
         video() {
-            if (!this.level) return "";
-            if (!this.level.showcase) return embed(this.level.verification);
-            return embed(this.toggledShowcase ? this.level.showcase : this.level.verification);
+            const l = this.level;
+            if (!l) return "";
+            const url =
+                this.toggledShowcase && l.showcase ? l.showcase : l.verification || l.showcase;
+            return url ? embed(url) : "";
         },
     },
     watch: {
         "selectedItem.key"() {
             this.toggledShowcase = false;
             this.copied = false;
+        },
+        tab() {
+            this.selectedKey = this.tabView[0]?.key ?? null;
         },
         sliderIndex(i) {
             this.applyTime(i);
@@ -325,7 +370,7 @@ export default {
             }
         }
 
-        this.selectedKey = this.view[0]?.key ?? null;
+        this.selectedKey = this.tabView[0]?.key ?? null;
         this.loading = false;
     },
     methods: {
@@ -369,15 +414,16 @@ export default {
             }
             this.timeBusy = false;
             this.timeIndex = i;
-            if (!this.view.some((v) => v.key === this.selectedKey)) {
-                this.selectedKey = this.view[0]?.key ?? null;
+            if (!this.tabView.some((v) => v.key === this.selectedKey)) {
+                this.selectedKey = this.tabView[0]?.key ?? null;
             }
         },
         // Small note next to a level when viewing the past
         delta(item) {
-            if (this.isToday || !this.hasPaths || !item.key) return "";
+            if (this.isToday || !this.hasPaths || !item.key || item.unverified) return "";
             const now = this.currentRank[item.key];
             if (now === undefined) return "off list";
+            if (now === null) return "now unverified";
             return now === item.rank ? "" : `now #${now}`;
         },
     },
