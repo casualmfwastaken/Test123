@@ -55,7 +55,7 @@ function build(entries) {
     let r = 0;
     return (entries || []).map((e) => {
         const level = e?.[0];
-        if (!verifierName || level.unverified) return;
+        const unverified = !!level && (!!level.unverified || !String(level.verifier || "").trim());
         return {
             level,
             err: e?.[1],
