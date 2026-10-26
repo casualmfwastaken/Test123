@@ -34,7 +34,7 @@
         <header class="topbar" :class="{ dark: store.dark }">
             <div class="logo">
                 <h2>Sample List</h2>
-                <span class="logo__ver">{{ store.version }}{{ store.plus ? ' PLUS' : '' }}</span>
+                <span class="logo__ver">{{ store.version }}{{ store.plus && $route.path === '/' ? ' PLUS' : '' }}</span>
             </div>
             <nav class="nav" aria-label="Main">
                 <router-link class="nav__tab" :class="{ inactive: store.plus }" to="/" @click="store.plus = false">
@@ -55,6 +55,9 @@
                     <span class="type-label-lg">Roulette</span>
                 </router-link>
                 <div class="nav__actions">
+                    <button type="button" class="nav__icon" aria-label="Settings" @click="store.settingsOpen = true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </button>
                     <button
                         class="nav__icon"
                         aria-label="Toggle dark mode"
@@ -73,6 +76,48 @@
             <!-- Restarts on every page change -->
             <div class="route-bar" :key="$route.fullPath"></div>
         </header>
+
+        <!-- Settings -->
+        <div class="settings-overlay" v-if="store.settingsOpen" @click.self="store.settingsOpen = false">
+            <div class="settings-modal" :class="{ dark: store.dark }" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+                <button type="button" class="settings-close" aria-label="Close" @click="store.settingsOpen = false">&times;</button>
+                <h2 id="settings-title">Settings</h2>
+                <p class="set-hint">Colors below are for the <strong>{{ store.dark ? 'dark' : 'light' }}</strong> theme. Switch themes with the sun/moon button to set the other one.</p>
+
+                <div class="set-row">
+                    <span>Accent</span>
+                    <div class="set-ctl">
+                        <button type="button" class="swatch" v-for="c in store.accents" :key="c" :style="{ background: c }" :class="{ on: store.settings.accent === c }" :aria-label="'Accent ' + c" @click="store.setColor('accent', c)"></button>
+                        <input type="color" :value="store.colorOf('accent')" @input="store.setColor('accent', $event.target.value)" aria-label="Custom accent color" />
+                        <button type="button" class="set-link" @click="store.setColor('accent', '')">Default</button>
+                    </div>
+                </div>
+
+                <div class="set-row" v-for="k in store.colorKeys" :key="k[0]">
+                    <span>{{ k[1] }}</span>
+                    <div class="set-ctl">
+                        <input type="color" :value="store.colorOf(k[0])" @input="store.setColor(k[0], $event.target.value)" :aria-label="k[1] + ' color'" />
+                        <button type="button" class="set-link" @click="store.setColor(k[0], '')">Default</button>
+                    </div>
+                </div>
+
+                <div class="set-row" v-for="g in store.groups" :key="g.key">
+                    <span>{{ g.label }}</span>
+                    <div class="seg">
+                        <button type="button" v-for="o in g.opts" :key="o[0]" :class="{ on: store.settings[g.key] === o[0] }" @click="store.settings[g.key] = o[0]">{{ o[1] }}</button>
+                    </div>
+                </div>
+
+                <div class="set-row">
+                    <label class="set-check"><input type="checkbox" v-model="store.settings.faces" /> Show difficulty faces</label>
+                </div>
+                <div class="set-row">
+                    <label class="set-check"><input type="checkbox" v-model="store.settings.motion" /> Animations</label>
+                </div>
+
+                <button type="button" class="set-reset" @click="store.resetSettings()">Reset everything</button>
+            </div>
+        </div>
 
         <router-view v-slot="{ Component }">
             <transition name="page">
