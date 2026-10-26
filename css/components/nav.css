@@ -68,6 +68,13 @@ header.topbar:not(.dark) .nav__icon img { filter: invert(1); }
 .topbar :focus-visible { outline: 2px solid var(--color-on-background); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .topbar * { transition: none !important; } }
 
+/* ---------- PLUS tab ---------- */
+.topbar button.nav__tab { background: none; border: 0; font: inherit; cursor: pointer; }
+.topbar .nav__tab.inactive.router-link-exact-active { background: transparent; color: var(--muted); }
+.topbar .nav__tab.inactive.router-link-exact-active:hover { background: var(--soft); color: var(--color-on-background); }
+.topbar .nav__tab--plus { font-weight: 700; }
+.topbar .nav__tab.is-active { background: var(--color-primary); color: var(--color-on-primary); }
+
 /* ---------- Page transitions and route bar ---------- */
 :root { --header-h: 3.75rem; }
 body { position: relative; }
@@ -100,4 +107,13 @@ header.topbar.dark .route-bar { background: color-mix(in srgb, var(--color-prima
 @media (prefers-reduced-motion: reduce) {
     .page-enter-active, .page-leave-active { transition: none; }
     .topbar .route-bar { animation: none; }
+}
+
+/* ---------- Mobile top bar ---------- */
+@media (max-width: 820px) {
+    header.topbar { display: flex; flex-wrap: wrap; height: auto; padding-block: .5rem; row-gap: .25rem; }
+    .topbar .nav { flex: 1 1 100%; overflow-x: auto; height: auto; padding-bottom: .25rem; -webkit-overflow-scrolling: touch; }
+    .topbar .nav__actions { margin-left: auto; flex: none; }
+    .topbar .nav__tab { flex: none; }
+    :root { --header-h: 6.5rem; }
 }
