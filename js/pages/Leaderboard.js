@@ -1,116 +1,161 @@
-/* css/pages/leaderboard.css: matches the list page */
-main.page-leaderboard {
-    --line: color-mix(in srgb, var(--color-on-background) 14%, transparent);
-    --soft: color-mix(in srgb, var(--color-on-background) 7%, transparent);
-    --muted: color-mix(in srgb, var(--color-on-background) 62%, transparent);
-    --page-bg: color-mix(in srgb, var(--color-on-background) 4%, var(--color-background));
-    display: grid;
-    grid-template-columns: minmax(18rem, 1fr) minmax(0, 2fr);
-    column-gap: 1.25rem;
-    align-items: start;
-    background-color: var(--page-bg);
-    font-family: "Lexend Deca", system-ui, sans-serif;
-    padding-block: 1.25rem;
-}
-main.page-leaderboard.dark { --page-bg: color-mix(in srgb, black 35%, var(--color-background)); }
-.page-leaderboard input, .page-leaderboard button { font-family: inherit; }
-.page-leaderboard li, .page-leaderboard p { font-size: 0.9rem; }
+import { fetchLeaderboard } from '../content.js';
+import { localize } from '../util.js';
 
-main.page-leaderboard > * {
-    align-self: start;
-    max-height: 100%;
-    overflow-y: auto;
-    box-sizing: border-box;
-    min-width: 0;
-    background-color: var(--color-background);
-    border: 1px solid var(--line);
-    border-radius: 0.75rem;
-    scrollbar-width: thin;
-}
+import Spinner from '../components/Spinner.js';
 
-/* ---------- Board ---------- */
-.page-leaderboard .board-container { padding: 0.75rem; }
-.page-leaderboard .lb-search {
-    width: 100%; box-sizing: border-box;
-    margin-bottom: 0.75rem; padding: 0.65rem 0.8rem;
-    color: var(--color-on-background);
-    background: var(--soft);
-    border: 1px solid transparent; border-radius: 0.5rem;
-    font-size: 0.85rem;
-}
-.page-leaderboard .lb-search::placeholder { color: var(--muted); }
-.page-leaderboard .lb-search:focus { outline: none; border-color: var(--color-on-background); }
+export default {
+    components: {
+        Spinner,
+    },
+    data: () => ({
+        leaderboard: [],
+        loading: true,
+        selectedUser: null,
+        query: '',
+        err: [],
+        failed: false,
+        mobilePane: 'board', // 'board' | 'player'
+    }),
+    template: `
+        <main v-if="loading" class="page-loading">
+            <Spinner></Spinner>
+        </main>
+        <main v-else class="page-leaderboard" :class="'pane-' + mobilePane">
+            <aside class="board-container">
+                <p class="lb-error" v-if="failed" role="alert">Couldn't load the leaderboard. Try again in a few minutes.</p>
+                <p class="lb-error" v-else-if="err.length > 0">
+                    Leaderboard may be incorrect, as the following levels could not be loaded: {{ err.join(', ') }}
+                </p>
 
-.page-leaderboard .lb-error {
-    margin: 0 0 0.75rem; padding: 0.75rem 1rem;
-    background: var(--color-error); color: var(--color-on-error);
-    border-radius: 0.5rem; font-size: 0.8rem;
-}
+                <input class="lb-search" type="search" v-model="query" placeholder="Search players" aria-label="Search players" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
 
-.page-leaderboard .board { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.page-leaderboard .board-row { display: grid; grid-template-columns: 3rem 1fr; align-items: center; }
-.page-leaderboard .board-rank {
-    padding-right: 0.75rem; text-align: end;
-    color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums;
-}
-.page-leaderboard .board-name {
-    display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
-    width: 100%; padding: 0.7rem 0.8rem;
-    text-align: start; word-break: normal; overflow-wrap: anywhere;
-    color: var(--color-on-background);
-    background: transparent;
-    border: none; border-radius: 0.5rem; cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
-}
-.page-leaderboard .board-name:hover { background-color: var(--color-background-hover); color: var(--color-on-background-hover); }
-.page-leaderboard .board-row.active .board-name { background-color: var(--color-primary); color: var(--color-on-primary); }
-.page-leaderboard .board-total { flex: none; opacity: 0.7; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-.page-leaderboard .board-empty { padding: 1rem 0.5rem; color: var(--muted); font-size: 0.85rem; }
+                <ul class="board">
+                    <li v-for="p in filtered" :key="p.user" class="board-row" :class="{ active: p.user === entry?.user }">
+                        <span class="board-rank">#{{ p.rank }}</span>
+                        <button type="button" class="board-name" @click="select(p.user)">
+                            <span class="type-label-lg">{{ p.user }}</span>
+                            <small class="board-total">{{ localize(p.total) }}</small>
+                        </button>
+                    </li>
+                    <li class="board-empty" v-if="filtered.length === 0">
+                        {{ query.trim() ? 'No players match "' + query + '".' : 'No players yet.' }}
+                    </li>
+                </ul>
+            </aside>
 
-/* ---------- Player ---------- */
-.page-leaderboard .player-container { padding: 1.75rem; }
-.page-leaderboard .player { display: flex; flex-direction: column; gap: 1.25rem; max-width: 48rem; margin-inline: auto; }
-.page-leaderboard .player-empty { min-height: 300px; justify-content: center; align-items: center; color: var(--muted); }
-.page-leaderboard .player-head h1 { margin: 0; letter-spacing: -0.02em; line-height: 1.15; overflow-wrap: anywhere; }
-.page-leaderboard .player-rank { margin: 0.35rem 0 0; color: var(--muted); }
-.page-leaderboard .player h2 { margin: 0.5rem 0 0; font-size: 1.1rem; }
+            <section class="player-container">
+                <div class="player" v-if="entry">
+                    <div class="player-head">
+                        <h1>{{ entry.user }}</h1>
+                        <p class="player-rank">Rank #{{ entryRank }}</p>
+                    </div>
 
-.page-leaderboard .lb-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
-.page-leaderboard .lb-stats li { padding: 0.9rem 1rem; background: var(--soft); border-radius: 0.5rem; }
-.page-leaderboard .lb-stats .type-title-sm { margin-bottom: 0.3rem; color: var(--muted); font-size: 0.75rem; }
-.page-leaderboard .lb-stats p { margin: 0; font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
+                    <ul class="lb-stats">
+                        <li>
+                            <div class="type-title-sm">Total points</div>
+                            <p>{{ localize(entry.total) }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">Verified</div>
+                            <p>{{ entry.verified.length }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">Completed</div>
+                            <p>{{ entry.completed.length }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">Progressed</div>
+                            <p>{{ entry.progressed.length }}</p>
+                        </li>
+                    </ul>
 
-.page-leaderboard .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.page-leaderboard .table td { padding: 0.8rem 0.5rem; border-top: 1px solid var(--line); vertical-align: middle; }
-.page-leaderboard .table p { margin: 0; }
-.page-leaderboard .table .rank { width: 4rem; text-align: start; color: var(--muted); font-variant-numeric: tabular-nums; }
-.page-leaderboard .table .level { width: auto; overflow-wrap: anywhere; }
-.page-leaderboard .table .level a { color: var(--color-on-background); text-decoration: none; }
-.page-leaderboard .table .level a:hover { text-decoration: underline; }
-.page-leaderboard .table .score { width: 6rem; text-align: end; font-weight: 700; font-variant-numeric: tabular-nums; }
+                    <template v-if="entry.verified.length > 0">
+                        <h2>Verified ({{ entry.verified.length }})</h2>
+                        <table class="table">
+                            <tr v-for="s in entry.verified" :key="'v' + s.rank + s.level">
+                                <td class="rank"><p>#{{ s.rank }}</p></td>
+                                <td class="level">
+                                    <a v-if="s.link" class="type-label-lg" target="_blank" rel="noopener" :href="s.link">{{ s.level }}</a>
+                                    <span v-else class="type-label-lg">{{ s.level }}</span>
+                                </td>
+                                <td class="score"><p>+{{ localize(s.score) }}</p></td>
+                            </tr>
+                        </table>
+                    </template>
 
-.page-leaderboard :focus-visible { outline: 2px solid var(--color-on-background); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .page-leaderboard *, .page-leaderboard *::before { transition: none !important; } }
+                    <template v-if="entry.completed.length > 0">
+                        <h2>Completed ({{ entry.completed.length }})</h2>
+                        <table class="table">
+                            <tr v-for="s in entry.completed" :key="'c' + s.rank + s.level">
+                                <td class="rank"><p>#{{ s.rank }}</p></td>
+                                <td class="level">
+                                    <a v-if="s.link" class="type-label-lg" target="_blank" rel="noopener" :href="s.link">{{ s.level }}</a>
+                                    <span v-else class="type-label-lg">{{ s.level }}</span>
+                                </td>
+                                <td class="score"><p>+{{ localize(s.score) }}</p></td>
+                            </tr>
+                        </table>
+                    </template>
 
-/* ---------- Mobile ---------- */
-.page-leaderboard .m-nav { display: none; }
+                    <template v-if="entry.progressed.length > 0">
+                        <h2>Progressed ({{ entry.progressed.length }})</h2>
+                        <table class="table">
+                            <tr v-for="s in entry.progressed" :key="'p' + s.rank + s.level">
+                                <td class="rank"><p>#{{ s.rank }}</p></td>
+                                <td class="level">
+                                    <a v-if="s.link" class="type-label-lg" target="_blank" rel="noopener" :href="s.link">{{ s.percent }}% {{ s.level }}</a>
+                                    <span v-else class="type-label-lg">{{ s.percent }}% {{ s.level }}</span>
+                                </td>
+                                <td class="score"><p>+{{ localize(s.score) }}</p></td>
+                            </tr>
+                        </table>
+                    </template>
+                </div>
+                <div class="player player-empty" v-else>
+                    <p>No players to show yet.</p>
+                </div>
+            </section>
 
-@media (max-width: 820px) {
-    main.page-leaderboard { display: block; padding: 0.75rem 0.75rem calc(4.5rem + env(safe-area-inset-bottom)); }
-    main.page-leaderboard > * { display: none; max-height: none; }
-    main.page-leaderboard.pane-board > .board-container,
-    main.page-leaderboard.pane-player > .player-container { display: block; width: 100%; }
-
-    main.page-leaderboard > .m-nav {
-        display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-        padding-bottom: env(safe-area-inset-bottom);
-        border-radius: 0; border-width: 1px 0 0;
-    }
-    .page-leaderboard .m-nav button { flex: 1; min-height: 3.5rem; color: var(--muted); background: none; border: 0; font-size: 0.85rem; }
-    .page-leaderboard .m-nav button.on { color: var(--color-on-background); font-weight: 700; }
-
-    .page-leaderboard .lb-search { font-size: 16px; }
-    .page-leaderboard .board-name { min-height: 2.75rem; }
-    .page-leaderboard .player-container { padding: 1rem; }
-    .page-leaderboard .lb-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+            <nav class="m-nav" aria-label="Sections">
+                <button type="button" :class="{ on: mobilePane === 'board' }" @click="mobilePane = 'board'">Players</button>
+                <button type="button" :class="{ on: mobilePane === 'player' }" @click="mobilePane = 'player'">Profile</button>
+            </nav>
+        </main>
+    `,
+    computed: {
+        ranked() {
+            return this.leaderboard.map((e, i) => ({ ...e, rank: i + 1 }));
+        },
+        filtered() {
+            const q = this.query.trim().toLowerCase();
+            return this.ranked.filter((p) => !q || p.user.toLowerCase().includes(q));
+        },
+        entry() {
+            return (
+                this.leaderboard.find((e) => e.user === this.selectedUser) ||
+                this.leaderboard[0] ||
+                null
+            );
+        },
+        entryRank() {
+            return this.entry ? this.leaderboard.indexOf(this.entry) + 1 : 0;
+        },
+    },
+    async mounted() {
+        try {
+            const [leaderboard, err] = await fetchLeaderboard();
+            this.leaderboard = leaderboard || [];
+            this.err = err || [];
+        } catch {
+            this.failed = true;
+        }
+        this.loading = false;
+    },
+    methods: {
+        localize,
+        select(user) {
+            this.selectedUser = user;
+            this.mobilePane = 'player';
+        },
+    },
+};
