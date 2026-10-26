@@ -51,11 +51,13 @@ const safeEmbed = (url) => {
 };
 
 // Unverified levels (no verifier) get no rank and don't take up a spot in the ranking.
+// Unverified levels (no verifier, or listed in _unverified_list.json) get no rank.
 function build(entries) {
     let r = 0;
     return (entries || []).map((e) => {
         const level = e?.[0];
-        const unverified = !!level && (!!level.unverified || !String(level.verifier || "").trim());
+        const unverified =
+            !!level && (!!level.unverified || !String(level.verifier || "").trim());
         return {
             level,
             err: e?.[1],
