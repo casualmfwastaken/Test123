@@ -204,3 +204,74 @@ main.page-list > * {
 }
 .page-list .copy:hover { filter: brightness(1.12); }
 .page-list .copy:active { transform: scale(0.95); }
+/* ---------- Tabs: spacing so they don't sit on the search box ---------- */
+.page-list .list-tabs,
+.page-list .list-mode { display: flex; width: fit-content; margin: 0 0 0.75rem; }
+.page-list .list-search { margin-top: 0.25rem; }
+.page-list .list-note { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.85rem; }
+
+/* ---------- Level rows: face + name ---------- */
+.page-list .row .name { align-items: center; }
+.page-list .row .name-main { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.page-list .diff-face { width: 1.75rem; height: 1.75rem; object-fit: contain; flex: none; }
+.page-list .diff-face--lg { width: 2.5rem; height: 2.5rem; vertical-align: middle; margin-right: 0.35rem; }
+
+/* ---------- Did you mean ---------- */
+.page-list .didyoumean { display: block; margin-top: 0.35rem; }
+.page-list .link-btn {
+    padding: 0; background: none; border: 0; color: var(--color-on-background);
+    font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer;
+}
+
+/* ---------- Records tabs, proof, no records ---------- */
+.page-list .records-head { row-gap: 0.75rem; }
+.page-list .records-tabs { align-self: center; }
+.page-list .no-records { margin: 0; color: var(--muted); }
+.page-list .no-records a { color: var(--color-on-background); text-decoration: underline; }
+.page-list .proof { display: flex; flex-direction: column; gap: 1rem; }
+.page-list .proof-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.page-list .proof-list button {
+    padding: 0.4rem 0.8rem; color: var(--color-on-background); background: var(--soft);
+    border: 0; border-radius: 999px; font-size: 0.8rem; cursor: pointer;
+}
+.page-list .proof-list button.on { background: var(--color-primary); color: var(--color-on-primary); }
+
+/* ---------- Errors ---------- */
+.page-list .errors-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    margin-bottom: 0.75rem; padding: 0.6rem 0.8rem;
+    background: var(--color-error); color: var(--color-on-error); border-radius: 0.5rem;
+}
+.page-list .errors-banner p { margin: 0; }
+.page-list .errors-banner button,
+.page-list .meta .retry {
+    padding: 0.3rem 0.8rem; color: var(--color-on-primary); background: var(--color-primary);
+    border: 0; border-radius: 999px; font-size: 0.8rem; cursor: pointer;
+}
+
+/* ---------- Mobile ---------- */
+.page-list .m-nav { display: none; }
+
+@media (max-width: 820px) {
+    main.page-list { display: block; padding: 0.75rem 0.75rem calc(4.5rem + env(safe-area-inset-bottom)); }
+    main.page-list > * { display: none; max-height: none; }
+    main.page-list.pane-list > .list-container,
+    main.page-list.pane-level > .level-container,
+    main.page-list.pane-info > .meta-container { display: block; width: 100%; }
+
+    main.page-list > .m-nav {
+        display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+        padding-bottom: env(safe-area-inset-bottom);
+        border-radius: 0; border-width: 1px 0 0;
+    }
+    .page-list .m-nav button {
+        flex: 1; min-height: 3.5rem; color: var(--muted); background: none; border: 0; font-size: 0.85rem;
+    }
+    .page-list .m-nav button.on { color: var(--color-on-background); font-weight: 700; }
+
+    .page-list .list-search { font-size: 16px; } /* stops iOS zooming on focus */
+    .page-list .row .name { min-height: 2.75rem; }
+    .page-list .level-container { padding: 1rem; }
+    .page-list .level-container .level .stats { grid-template-columns: 1fr; }
+    .page-list .level-container .level .records { display: block; overflow-x: auto; }
+}
