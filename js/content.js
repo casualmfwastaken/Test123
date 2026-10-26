@@ -18,13 +18,33 @@ async function fetchPlusMeta() {
     }
 }
 
+// Reads a file that is a plain array of level names, or { list: [...] }
+async function fetchNames(file) {
+    try {
+        const res = await fetch(`${dir}/${file}`);
+        if (!res.ok) throw new Error('missing');
+        const data = await res.json();
+        const names = Array.isArray(data) ? data : data?.list;
+        return Array.isArray(names) ? names : [];
+    } catch {
+        return [];
+    }
+}
+
 export async function fetchList() {
     try {
         const listResult = await fetch(`${dir}/_list.json`);
-        const plus = new Set(await fetchPlusMeta());
-        const list = (await listResult.json()).filter((path) => !plus.has(path));
+        const [plusNames, unvNames] = await Promise.all([
+            fetchNames('_list_plus.json'),
+            fetchNames('_unverified_list.json'),
+        ]);
+        const plus = new Set(plusNames);
+        const unv = new Set(unvNames.filter((p) => !plus.has(p)));
+        const main = (await listResult.json()).filter((p) => !plus.has(p) && !unv.has(p));
+        const paths = [...main, ...unv]; // unverified levels go last, in file order
+
         return await Promise.all(
-            list.map(async (path, rank) => {
+            paths.map(async (path, rank) => {
                 try {
                     const levelResult = await fetch(`${dir}/${path}.json`);
                     const level = await levelResult.json();
@@ -32,6 +52,7 @@ export async function fetchList() {
                         {
                             ...level,
                             path,
+                            unverified: unv.has(path),
                             records: [...(level.records || [])].sort(
                                 (a, b) => b.percent - a.percent,
                             ),
@@ -49,7 +70,6 @@ export async function fetchList() {
         return null;
     }
 }
-
 export async function fetchEditors() {
     try {
         const editorsResults = await fetch(`${dir}/_editors.json`);
