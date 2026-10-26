@@ -2,11 +2,14 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=1024" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#000000" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <title>Your List Name</title>
 
         <!-- Replace your server icon by uploading an image file named "list_icon.png"-->
         <link rel="icon" href="/list_icon.png" />
+        <link rel="apple-touch-icon" href="/list_icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
@@ -17,18 +20,10 @@
         <link rel="stylesheet" type="text/css" href="/css/typography.css" />
         <link rel="stylesheet" type="text/css" href="/css/main.css" />
         <link rel="stylesheet" type="text/css" href="/css/pages/list.css" />
-        <link
-            rel="stylesheet"
-            type="text/css"
-            href="/css/pages/leaderboard.css"
-        />
+        <link rel="stylesheet" type="text/css" href="/css/pages/leaderboard.css" />
         <link rel="stylesheet" type="text/css" href="/css/pages/roulette.css" />
         <link rel="stylesheet" type="text/css" href="/css/components/btn.css" />
-        <link
-            rel="stylesheet"
-            type="text/css"
-            href="/css/components/tabs.css"
-        />
+        <link rel="stylesheet" type="text/css" href="/css/components/tabs.css" />
         <!-- nav.css last so the new top bar wins -->
         <link rel="stylesheet" type="text/css" href="/css/components/nav.css" />
         <script src="https://unpkg.com/vue@3.2.31/dist/vue.global.prod.js"></script>
@@ -39,12 +34,20 @@
         <header class="topbar" :class="{ dark: store.dark }">
             <div class="logo">
                 <h2>Sample List</h2>
-                <span class="logo__ver">v1.0.0</span>
+                <span class="logo__ver">{{ store.version }}{{ store.plus ? ' PLUS' : '' }}</span>
             </div>
             <nav class="nav" aria-label="Main">
-                <router-link class="nav__tab" to="/">
+                <router-link class="nav__tab" :class="{ inactive: store.plus }" to="/" @click="store.plus = false">
                     <span class="type-label-lg">List</span>
                 </router-link>
+                <button
+                    type="button"
+                    class="nav__tab nav__tab--plus"
+                    :class="{ 'is-active': store.plus && $route.path === '/' }"
+                    @click="store.plus = true; $router.push('/')"
+                >
+                    <span class="type-label-lg">PLUS</span>
+                </button>
                 <router-link class="nav__tab" to="/leaderboard">
                     <span class="type-label-lg">Leaderboard</span>
                 </router-link>
@@ -57,24 +60,20 @@
                         aria-label="Toggle dark mode"
                         @click.prevent="store.toggleDark()"
                     >
-                        <img
-                            :src="store.dark ? '/assets/light.svg' : '/assets/dark.svg'"
-                            alt=""
-                        />
+                        <img :src="store.dark ? '/assets/light.svg' : '/assets/dark.svg'" alt="" />
                     </button>
                     <!-- Replace the '#' with your discord server's invite-->
                     <a class="nav__icon" href="#" aria-label="Discord">
                         <img src="/assets/discord.svg" alt="" />
                     </a>
-                    <!-- List record submission form, add a link to replace the '#' when putting a link to your list submission form-->
-                    <a class="nav__cta type-label-lg" href="#" target="_blank"
-                        >Submit Record</a
-                    >
+                    <!-- Replace the '#' with your record submission form -->
+                    <a class="nav__cta type-label-lg" href="#" target="_blank">Submit Record</a>
                 </div>
             </nav>
             <!-- Restarts on every page change -->
             <div class="route-bar" :key="$route.fullPath"></div>
         </header>
+
         <router-view v-slot="{ Component }">
             <transition name="page">
                 <component :is="Component" :class="{ dark: store.dark }" />
