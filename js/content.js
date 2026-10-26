@@ -95,7 +95,7 @@ export async function fetchLeaderboard() {
 
         // Unverified levels: no verifier credit, no records, no points
         const verifierName = (level.verifier || '').trim();
-        if (!verifierName) return;
+        if (!verifierName || level.unverified) return;
 
         rank += 1;
 
