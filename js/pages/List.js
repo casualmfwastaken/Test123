@@ -199,7 +199,7 @@ export default {
                 </div>
 
                 <div class="video-toggle list-tabs" role="tablist">
-                    <button type="button" role="tab" :aria-selected="tab === 'ranked'" :class="{ on: tab === 'ranked' }" @click="tab = 'ranked'">Ranked</button>
+                    <button type="button" role="tab" :aria-selected="tab === 'ranked'" :class="{ on: tab === 'ranked' }" @click="tab = 'ranked'">Placed</button>
                     <button type="button" role="tab" :aria-selected="tab === 'unverified'" :class="{ on: tab === 'unverified' }" @click="tab = 'unverified'">Unverified ({{ unverifiedCount }})</button>
                 </div>
 
