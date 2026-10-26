@@ -5,10 +5,24 @@ import { round, score } from './score.js';
  */
 const dir = '/data';
 
+// Names of the levels that live in the PLUS list
+async function fetchPlusMeta() {
+    try {
+        const res = await fetch(`${dir}/_list_plus.json`);
+        if (!res.ok) throw new Error('missing');
+        const data = await res.json();
+        const paths = Array.isArray(data) ? data : data?.list;
+        return Array.isArray(paths) ? paths : [];
+    } catch {
+        return [];
+    }
+}
+
 export async function fetchList() {
     try {
         const listResult = await fetch(`${dir}/_list.json`);
-        const list = await listResult.json();
+        const plus = new Set(await fetchPlusMeta());
+        const list = (await listResult.json()).filter((path) => !plus.has(path));
         return await Promise.all(
             list.map(async (path, rank) => {
                 try {
