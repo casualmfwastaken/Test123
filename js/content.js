@@ -6,19 +6,19 @@ import { round, score } from './score.js';
 const dir = '/data';
 
 export async function fetchList() {
-    const listResult = await fetch(`${dir}/_list.json`);
     try {
+        const listResult = await fetch(`${dir}/_list.json`);
         const list = await listResult.json();
         return await Promise.all(
             list.map(async (path, rank) => {
-                const levelResult = await fetch(`${dir}/${path}.json`);
                 try {
+                    const levelResult = await fetch(`${dir}/${path}.json`);
                     const level = await levelResult.json();
                     return [
                         {
                             ...level,
                             path,
-                            records: level.records.sort(
+                            records: [...(level.records || [])].sort(
                                 (a, b) => b.percent - a.percent,
                             ),
                         },
@@ -47,20 +47,28 @@ export async function fetchEditors() {
 }
 
 export async function fetchLeaderboard() {
-    const list = await fetchList();
+    const list = (await fetchList()) || [];
 
     const scoreMap = {};
     const errs = [];
-    list.forEach(([level, err], rank) => {
+    let rank = 0; // only verified levels take a rank, same as the list page
+
+    list.forEach(([level, err]) => {
         if (err) {
             errs.push(err);
             return;
         }
 
+        // Unverified levels: no verifier credit, no records, no points
+        const verifierName = (level.verifier || '').trim();
+        if (!verifierName) return;
+
+        rank += 1;
+
         // Verification
         const verifier = Object.keys(scoreMap).find(
-            (u) => u.toLowerCase() === level.verifier.toLowerCase(),
-        ) || level.verifier;
+            (u) => u.toLowerCase() === verifierName.toLowerCase(),
+        ) || verifierName;
         scoreMap[verifier] ??= {
             verified: [],
             completed: [],
@@ -68,14 +76,15 @@ export async function fetchLeaderboard() {
         };
         const { verified } = scoreMap[verifier];
         verified.push({
-            rank: rank + 1,
+            rank,
             level: level.name,
-            score: score(rank + 1, 100, level.percentToQualify),
+            score: score(rank, 100, level.percentToQualify),
             link: level.verification,
         });
 
         // Records
-        level.records.forEach((record) => {
+        (level.records || []).forEach((record) => {
+            if (!record?.user) return;
             const user = Object.keys(scoreMap).find(
                 (u) => u.toLowerCase() === record.user.toLowerCase(),
             ) || record.user;
@@ -87,19 +96,19 @@ export async function fetchLeaderboard() {
             const { completed, progressed } = scoreMap[user];
             if (record.percent === 100) {
                 completed.push({
-                    rank: rank + 1,
+                    rank,
                     level: level.name,
-                    score: score(rank + 1, 100, level.percentToQualify),
+                    score: score(rank, 100, level.percentToQualify),
                     link: record.link,
                 });
                 return;
             }
 
             progressed.push({
-                rank: rank + 1,
+                rank,
                 level: level.name,
                 percent: record.percent,
-                score: score(rank + 1, record.percent, level.percentToQualify),
+                score: score(rank, record.percent, level.percentToQualify),
                 link: record.link,
             });
         });
