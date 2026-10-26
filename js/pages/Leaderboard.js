@@ -10,101 +10,152 @@ export default {
     data: () => ({
         leaderboard: [],
         loading: true,
-        selected: 0,
+        selectedUser: null,
+        query: '',
         err: [],
+        failed: false,
+        mobilePane: 'board', // 'board' | 'player'
     }),
     template: `
-        <main v-if="loading">
+        <main v-if="loading" class="page-loading">
             <Spinner></Spinner>
         </main>
-        <main v-else class="page-leaderboard-container">
-            <div class="page-leaderboard">
-                <div class="error-container">
-                    <p class="error" v-if="err.length > 0">
-                        Leaderboard may be incorrect, as the following levels could not be loaded: {{ err.join(', ') }}
-                    </p>
-                </div>
-                <div class="board-container">
-                    <table class="board">
-                        <tr v-for="(ientry, i) in leaderboard">
-                            <td class="rank">
-                                <p class="type-label-lg">#{{ i + 1 }}</p>
-                            </td>
-                            <td class="total">
-                                <p class="type-label-lg">{{ localize(ientry.total) }}</p>
-                            </td>
-                            <td class="user" :class="{ 'active': selected == i }">
-                                <button @click="selected = i">
-                                    <span class="type-label-lg">{{ ientry.user }}</span>
-                                </button>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="player-container">
-                    <div class="player">
-                        <h1>#{{ selected + 1 }} {{ entry.user }}</h1>
-                        <h3>{{ entry.total }}</h3>
-                        <h2 v-if="entry.verified.length > 0">Verified ({{ entry.verified.length}})</h2>
-                        <table class="table">
-                            <tr v-for="score in entry.verified">
-                                <td class="rank">
-                                    <p>#{{ score.rank }}</p>
-                                </td>
-                                <td class="level">
-                                    <a class="type-label-lg" target="_blank" :href="score.link">{{ score.level }}</a>
-                                </td>
-                                <td class="score">
-                                    <p>+{{ localize(score.score) }}</p>
-                                </td>
-                            </tr>
-                        </table>
-                        <h2 v-if="entry.completed.length > 0">Completed ({{ entry.completed.length }})</h2>
-                        <table class="table">
-                            <tr v-for="score in entry.completed">
-                                <td class="rank">
-                                    <p>#{{ score.rank }}</p>
-                                </td>
-                                <td class="level">
-                                    <a class="type-label-lg" target="_blank" :href="score.link">{{ score.level }}</a>
-                                </td>
-                                <td class="score">
-                                    <p>+{{ localize(score.score) }}</p>
-                                </td>
-                            </tr>
-                        </table>
-                        <h2 v-if="entry.progressed.length > 0">Progressed ({{entry.progressed.length}})</h2>
-                        <table class="table">
-                            <tr v-for="score in entry.progressed">
-                                <td class="rank">
-                                    <p>#{{ score.rank }}</p>
-                                </td>
-                                <td class="level">
-                                    <a class="type-label-lg" target="_blank" :href="score.link">{{ score.percent }}% {{ score.level }}</a>
-                                </td>
-                                <td class="score">
-                                    <p>+{{ localize(score.score) }}</p>
-                                </td>
-                            </tr>
-                        </table>
+        <main v-else class="page-leaderboard" :class="'pane-' + mobilePane">
+            <aside class="board-container">
+                <p class="lb-error" v-if="failed" role="alert">Couldn't load the leaderboard. Try again in a few minutes.</p>
+                <p class="lb-error" v-else-if="err.length > 0">
+                    Leaderboard may be incorrect, as the following levels could not be loaded: {{ err.join(', ') }}
+                </p>
+
+                <input class="lb-search" type="search" v-model="query" placeholder="Search players" aria-label="Search players" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+
+                <ul class="board">
+                    <li v-for="p in filtered" :key="p.user" class="board-row" :class="{ active: p.user === entry?.user }">
+                        <span class="board-rank">#{{ p.rank }}</span>
+                        <button type="button" class="board-name" @click="select(p.user)">
+                            <span class="type-label-lg">{{ p.user }}</span>
+                            <small class="board-total">{{ localize(p.total) }}</small>
+                        </button>
+                    </li>
+                    <li class="board-empty" v-if="filtered.length === 0">
+                        {{ query.trim() ? 'No players match "' + query + '".' : 'No players yet.' }}
+                    </li>
+                </ul>
+            </aside>
+
+            <section class="player-container">
+                <div class="player" v-if="entry">
+                    <div class="player-head">
+                        <h1>{{ entry.user }}</h1>
+                        <p class="player-rank">Rank #{{ entryRank }}</p>
                     </div>
+
+                    <ul class="lb-stats">
+                        <li>
+                            <div class="type-title-sm">Total points</div>
+                            <p>{{ localize(entry.total) }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">Verified</div>
+                            <p>{{ entry.verified.length }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">Completed</div>
+                            <p>{{ entry.completed.length }}</p>
+                        </li>
+                        <li>
+                            <div class="type-title-sm">Progressed</div>
+                            <p>{{ entry.progressed.length }}</p>
+                        </li>
+                    </ul>
+
+                    <template v-if="entry.verified.length > 0">
+                        <h2>Verified ({{ entry.verified.length }})</h2>
+                        <table class="table">
+                            <tr v-for="s in entry.verified" :key="'v' + s.rank + s.level">
+                                <td class="rank"><p>#{{ s.rank }}</p></td>
+                                <td class="level">
+                                    <a v-if="s.link" class="type-label-lg" target="_blank" rel="noopener" :href="s.link">{{ s.level }}</a>
+                                    <span v-else class="type-label-lg">{{ s.level }}</span>
+                                </td>
+                                <td class="score"><p>+{{ localize(s.score) }}</p></td>
+                            </tr>
+                        </table>
+                    </template>
+
+                    <template v-if="entry.completed.length > 0">
+                        <h2>Completed ({{ entry.completed.length }})</h2>
+                        <table class="table">
+                            <tr v-for="s in entry.completed" :key="'c' + s.rank + s.level">
+                                <td class="rank"><p>#{{ s.rank }}</p></td>
+                                <td class="level">
+                                    <a v-if="s.link" class="type-label-lg" target="_blank" rel="noopener" :href="s.link">{{ s.level }}</a>
+                                    <span v-else class="type-label-lg">{{ s.level }}</span>
+                                </td>
+                                <td class="score"><p>+{{ localize(s.score) }}</p></td>
+                            </tr>
+                        </table>
+                    </template>
+
+                    <template v-if="entry.progressed.length > 0">
+                        <h2>Progressed ({{ entry.progressed.length }})</h2>
+                        <table class="table">
+                            <tr v-for="s in entry.progressed" :key="'p' + s.rank + s.level">
+                                <td class="rank"><p>#{{ s.rank }}</p></td>
+                                <td class="level">
+                                    <a v-if="s.link" class="type-label-lg" target="_blank" rel="noopener" :href="s.link">{{ s.percent }}% {{ s.level }}</a>
+                                    <span v-else class="type-label-lg">{{ s.percent }}% {{ s.level }}</span>
+                                </td>
+                                <td class="score"><p>+{{ localize(s.score) }}</p></td>
+                            </tr>
+                        </table>
+                    </template>
                 </div>
-            </div>
+                <div class="player player-empty" v-else>
+                    <p>No players to show yet.</p>
+                </div>
+            </section>
+
+            <nav class="m-nav" aria-label="Sections">
+                <button type="button" :class="{ on: mobilePane === 'board' }" @click="mobilePane = 'board'">Players</button>
+                <button type="button" :class="{ on: mobilePane === 'player' }" @click="mobilePane = 'player'">Profile</button>
+            </nav>
         </main>
     `,
     computed: {
+        ranked() {
+            return this.leaderboard.map((e, i) => ({ ...e, rank: i + 1 }));
+        },
+        filtered() {
+            const q = this.query.trim().toLowerCase();
+            return this.ranked.filter((p) => !q || p.user.toLowerCase().includes(q));
+        },
         entry() {
-            return this.leaderboard[this.selected];
+            return (
+                this.leaderboard.find((e) => e.user === this.selectedUser) ||
+                this.leaderboard[0] ||
+                null
+            );
+        },
+        entryRank() {
+            return this.entry ? this.leaderboard.indexOf(this.entry) + 1 : 0;
         },
     },
     async mounted() {
-        const [leaderboard, err] = await fetchLeaderboard();
-        this.leaderboard = leaderboard;
-        this.err = err;
-        // Hide loading spinner
+        try {
+            const [leaderboard, err] = await fetchLeaderboard();
+            this.leaderboard = leaderboard || [];
+            this.err = err || [];
+        } catch {
+            this.failed = true;
+        }
         this.loading = false;
     },
     methods: {
         localize,
+        select(user) {
+            this.selectedUser = user;
+            this.mobilePane = 'player';
+        },
     },
 };
