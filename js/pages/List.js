@@ -256,7 +256,7 @@ export default {
                     <div class="level" v-if="level" :key="selectedItem.key">
                         <div class="level-header">
                             <h1>
-                         <img v-if="faceSrc(item.level)" class="diff-face" :src="faceSrc(item.level)" :alt="faceName(item.level)" :title="faceName(item.level)" loading="lazy" @error="hideImg">
+                         <img v-if="faceSrc(level)" class="diff-face diff-face--lg" :src="faceSrc(level)" :alt="faceName(level)" :title="faceName(level)" @error="hideImg">
                                   {{ level.name }}
                                     </h1>
                             <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
