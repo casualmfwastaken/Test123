@@ -82,6 +82,8 @@ export function buildCss(s, dark) {
     if (s.motion === false) {
         out.push('*, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important }');
     }
+    if (s.shape === 'sharp') out.push(':root { --ui-r: 0px !important; --ui-r-sm: 0px !important }');
+else if (s.shape === 'round') out.push(':root { --ui-r: 1rem !important; --ui-r-sm: 999px !important }');
     return out.join('\n');
 }
 
