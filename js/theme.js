@@ -25,7 +25,7 @@ const FONTS = {
 };
 const SIZES = { small: 14, large: 18 };
 
-const CARDS = 'main.page-list > *, main.page-leaderboard > *';
+const CARDS = 'main.page-list > *, main.page-leaderboard > *, main.page-home > *, .settings-modal';
 const INNER = [
     '.page-list .tm', '.page-list .stats li', '.page-list .list-search', '.page-list .row .name',
     '.page-list .video-wrap', '.page-list .tm-banner-row', '.page-list .meta .errors .error',
