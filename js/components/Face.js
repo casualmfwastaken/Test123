@@ -1,4 +1,4 @@
-import { cutout } from '../faces.js';
+import { cutout } from '../faces.js?v=4';
 
 export default {
     props: {
