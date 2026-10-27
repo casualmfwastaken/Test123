@@ -38,51 +38,48 @@
     </head>
     <body id="app" v-cloak>
         <header class="topbar" :class="{ dark: store.dark }">
-            <div class="logo">
-                <h2>Sample List</h2>
-                <span class="logo__ver">{{ store.version }}{{ store.plus && $route.path === '/' ? ' PLUS' : '' }}</span>
-            </div>
-            <nav class="nav" aria-label="Main">
-                <router-link class="nav__tab" :class="{ inactive: store.plus }" to="/" @click="store.plus = false">
-                    <span class="type-label-lg">List</span>
-                </router-link>
-                <button
-                    type="button"
-                    class="nav__tab nav__tab--plus"
-                    :class="{ 'is-active': store.plus && $route.path === '/' }"
-                    @click="store.plus = true; $router.push('/')"
-                >
-                    <span class="type-label-lg">PLUS</span>
-                </button>
-                <router-link class="nav__tab" to="/leaderboard">
-                    <span class="type-label-lg">Leaderboard</span>
-                </router-link>
-                <router-link class="nav__tab" to="/roulette">
-                    <span class="type-label-lg">Roulette</span>
-                </router-link>
-                <div class="nav__actions">
-                    <button type="button" class="nav__icon" aria-label="Settings" @click="store.settingsOpen = true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    </button>
-                    <button
-                        class="nav__icon"
-                        aria-label="Toggle dark mode"
-                        @click.prevent="store.toggleDark()"
-                    >
-                        <img :src="store.dark ? '/assets/light.svg' : '/assets/dark.svg'" alt="" />
-                    </button>
-                    <!-- Replace the '#' with your discord server's invite-->
-                    <a class="nav__icon" href="#" aria-label="Discord">
-                        <img src="/assets/discord.svg" alt="" />
-                    </a>
-                    <!-- Replace the '#' with your record submission form -->
-                    <a class="nav__cta type-label-lg" href="#" target="_blank">Submit Record</a>
-                </div>
-            </nav>
-            <!-- Restarts on every page change -->
-            <div class="route-bar" :key="$route.fullPath"></div>
-        </header>
-
+    <div class="logo">
+        <h2>Sample List</h2>
+        <span class="logo__ver">{{ store.version }}{{ store.plus && $route.path === '/list' ? ' PLUS' : '' }}</span>
+    </div>
+    <nav class="nav" aria-label="Main">
+        <router-link class="nav__tab" to="/">
+            <span class="type-label-lg">Home</span>
+        </router-link>
+        <router-link class="nav__tab" :class="{ inactive: store.plus }" to="/list" @click="store.plus = false">
+            <span class="type-label-lg">List</span>
+        </router-link>
+        <button
+            type="button"
+            class="nav__tab nav__tab--plus"
+            :class="{ 'is-active': store.plus && $route.path === '/list' }"
+            @click="store.plus = true; $router.push('/list')"
+        >
+            <span class="type-label-lg">PLUS</span>
+        </button>
+        <router-link class="nav__tab" to="/leaderboard">
+            <span class="type-label-lg">Leaderboard</span>
+        </router-link>
+        <router-link class="nav__tab" to="/roulette">
+            <span class="type-label-lg">Roulette</span>
+        </router-link>
+        <div class="nav__actions">
+            <button type="button" class="nav__icon" aria-label="Settings" @click="store.settingsOpen = true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="nav__icon" aria-label="Toggle dark mode" @click.prevent="store.toggleDark()">
+                <img :src="store.dark ? '/assets/light.svg' : '/assets/dark.svg'" alt="" />
+            </button>
+            <!-- Replace the '#' with your discord server's invite-->
+            <a class="nav__icon" href="#" aria-label="Discord">
+                <img src="/assets/discord.svg" alt="" />
+            </a>
+            <!-- Replace the '#' with your record submission form -->
+            <a class="nav__cta type-label-lg" href="#" target="_blank">Submit Record</a>
+        </div>
+    </nav>
+    <div class="route-bar" :key="$route.fullPath"></div>
+</header>
         <!-- Settings -->
         <div class="settings-overlay" v-if="store.settingsOpen" @click.self="store.settingsOpen = false">
             <div class="settings-modal" :class="{ dark: store.dark }" role="dialog" aria-modal="true" aria-labelledby="settings-title">
