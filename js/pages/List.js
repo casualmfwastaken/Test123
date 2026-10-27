@@ -581,10 +581,11 @@ export default {
         versionFor(i) {
             return this.history[i]?.version || `v${VERSION_MAJOR}.${i}`;
         },
-        faceName(level) {
-            if (!level) return "";
-            return String(this.faces[level.path] || level.difficulty || "");
-        },
+       faceName(level) {
+    if (!level) return "";
+    const p = String(level.path || "");
+    return String(this.faces[p] || this.facesLower[p.toLowerCase()] || level.difficulty || "");
+},
         faceSrc(level) {
             const n = this.faceName(level);
             return n ? `/assets/faces/${encodeURIComponent(n)}.png` : "";
