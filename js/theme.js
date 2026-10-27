@@ -68,7 +68,7 @@ export function buildCss(s, dark) {
 
     const out = [];
     if (v.length) {
-        out.push(`:root, body, header.topbar, main, .dark, .settings-overlay { ${v.map((x) => x + ' !important').join('; ')} }`);
+        out.push(`:root, body, header.topbar, main, .dark, .settings-overlay, .settings-modal { ${v.map((x) => x + ' !important').join('; ')} }`);
     }
     if (bg) out.push(`html, body { background-color: ${bg} !important }`);
     if (FONTS[s.font]) out.push(`body, body * { font-family: ${FONTS[s.font]} !important }`);
