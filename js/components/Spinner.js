@@ -1,3 +1,3 @@
 export default {
-    template: `<p class="spinner">Loading...</p>`,
+    template: `<div class="loader-ring" role="status" aria-label="Loading"></div>`,
 };
