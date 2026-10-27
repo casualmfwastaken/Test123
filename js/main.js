@@ -4,7 +4,7 @@ import { DEFAULTS, loadSettings, applyTheme } from './theme.js';
 const read = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 
 export const store = Vue.reactive({
-    dark: JSON.parse(read('dark')) || false,
+    dark: read('dark') === null ? true : JSON.parse(read('dark')),
     plus: read('plus') === '1',
     version: 'v1.0', // List.js updates this from _history.json
 
