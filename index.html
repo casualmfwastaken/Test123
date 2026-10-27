@@ -5,9 +5,23 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#000000" />
         <title>Your List Name</title>
-        <style>[v-cloak] { display: none !important; }</style>
+        <style>
+    [v-cloak] { display: none !important; }
+    #boot { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #1b1b20; }
+    #boot i { width: 3rem; height: 3rem; border: 4px solid rgba(255, 255, 255, .18); border-top-color: #0062ff; border-radius: 50%; animation: boot-spin .8s linear infinite; }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+</style>
 <script>
-    try { if (JSON.parse(localStorage.getItem('dark')) !== false) document.documentElement.style.background = '#1b1b20'; } catch (e) {}
+    try {
+        var dark = JSON.parse(localStorage.getItem('dark')) !== false;
+        var bg = dark ? '#1b1b20' : '#ffffff';
+        document.documentElement.style.background = bg;
+        var boot = document.createElement('div');
+        boot.id = 'boot';
+        boot.style.background = bg;
+        boot.innerHTML = '<i></i>';
+        document.documentElement.appendChild(boot);
+    } catch (e) {}
 </script>
 
         <!-- Replace your server icon by uploading an image file named "list_icon.png"-->
