@@ -433,7 +433,7 @@ export default {
                 if (k) m[k] = e;
             }
             return m;
-        }
+        },
             facesLower() {
     const m = {};
     for (const [k, v] of Object.entries(this.faces || {})) m[k.toLowerCase()] = v;
