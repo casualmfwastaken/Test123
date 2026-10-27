@@ -130,3 +130,7 @@ main.page-loading {
 .page-list .meta .editors li:hover > p {
     text-decoration-line: underline !important;
 }
+/* ---------- Settings window follows light / dark ---------- */
+.settings-modal { --color-background: #ffffff; --color-on-background: #111111; color-scheme: light; }
+.settings-modal.dark { --color-background: #1b1b20; --color-on-background: #ffffff; color-scheme: dark; }
+.settings-modal.dark .set-reset:hover { background: color-mix(in srgb, var(--color-on-background) 14%, transparent); }
