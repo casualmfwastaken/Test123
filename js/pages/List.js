@@ -162,7 +162,7 @@ async function fetchPlus() {
 }
 
 export default {
-    components: { Spinner, LevelAuthors },
+        components: { Spinner, LevelAuthors },
     template: `
         <main v-if="loading" class="page-loading">
             <Spinner></Spinner>
