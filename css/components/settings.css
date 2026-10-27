@@ -109,16 +109,14 @@ input[type="checkbox"], .set-check, .set-check * { cursor: var(--cur-arrow) 4 2,
     * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, .5) transparent; }
 }
 
-/* ---------- Loading circle: centered ---------- */
-main.page-loading {
-    position: fixed; inset: var(--header-h, 3.75rem) 0 0 0;
-    display: flex !important; align-items: center; justify-content: center;
-    grid-template-columns: none !important;
-    margin: 0; padding: 0 !important; min-height: 0;
-    background: transparent; border: 0;
+/* ---------- Loading circle: always centered below the top bar ---------- */
+main.page-loading { display: block !important; padding: 0 !important; margin: 0; border: 0; background: transparent; min-height: 0; }
+.loader-ring {
+    position: fixed !important;
+    top: calc(50% + var(--header-h, 3.75rem) / 2) !important;
+    left: 50% !important;
+    margin: -1.5rem 0 0 -1.5rem !important; /* half of the 3rem size */
 }
-.loader-ring { flex: none; margin: 0; }
-
 /* ---------- List editors underline on hover (works for links and plain names) ---------- */
 .page-list .meta .editors li > a,
 .page-list .meta .editors li > p {
