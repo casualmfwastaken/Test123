@@ -65,3 +65,9 @@ const router = VueRouter.createRouter({
 app.use(router);
 
 app.mount('#app');
+const boot = document.getElementById('boot');
+if (boot) {
+    boot.style.transition = 'opacity .25s';
+    boot.style.opacity = '0';
+    setTimeout(() => boot.remove(), 260);
+}
