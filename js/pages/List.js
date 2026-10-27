@@ -650,6 +650,13 @@ export default {
             }
             this.plusLoading = true;
             this.plusData = await fetchPlus();
+            const noFace = (this.plusData.levels || [])
+    .map(([l]) => l)
+    .filter((l) => l && !this.faceName(l))
+    .map((l) => l.path);
+if (noFace.length) {
+    console.warn("PLUS levels without a difficulty face (add them to _faces.json):", noFace);
+}
             this.plusLoaded = !this.plusData.error;
             this.plusLoading = false;
             this.selectedKey = this.tabView[0]?.key ?? null;
