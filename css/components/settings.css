@@ -38,3 +38,95 @@
 }
 @keyframes loader-spin { to { transform: rotate(360deg); } }
 main.page-loading { display: grid; place-items: center; min-height: 60vh; }
+/* ---------- Shape variables (theme.js changes these for Sharp / Round) ---------- */
+:root {
+    --ui-r: 0.6rem;
+    --ui-r-sm: 0.4rem;
+    --cur-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M4 2l15 9-6.5 1.8L9.5 19z' fill='white' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --cur-link: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M4 2l15 9-6.5 1.8L9.5 19z' fill='%230062ff' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ---------- Color pickers and swatches follow the corner setting ---------- */
+.settings-modal input[type="color"] {
+    -webkit-appearance: none; appearance: none;
+    width: 2.2rem; height: 2rem; padding: 3px; box-sizing: border-box;
+    background: transparent;
+    border: 2px solid color-mix(in srgb, var(--color-on-background) 30%, transparent);
+    border-radius: var(--ui-r-sm);
+}
+.settings-modal input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.settings-modal input[type="color"]::-webkit-color-swatch { border: 0; border-radius: calc(var(--ui-r-sm) - 3px); }
+.settings-modal input[type="color"]::-moz-color-swatch { border: 0; border-radius: calc(var(--ui-r-sm) - 3px); }
+.swatch { width: 1.5rem; height: 1.5rem; border-radius: var(--ui-r-sm); }
+
+/* ---------- Custom checkboxes ---------- */
+.settings-modal input[type="checkbox"] {
+    -webkit-appearance: none; appearance: none;
+    flex: none; display: inline-grid; place-content: center;
+    width: 1.3rem; height: 1.3rem; margin: 0;
+    background: transparent;
+    border: 2px solid var(--muted);
+    border-radius: var(--ui-r-sm);
+    transition: background-color .15s, border-color .15s;
+}
+.settings-modal input[type="checkbox"]::after {
+    content: ""; width: .35rem; height: .65rem; margin-top: -2px;
+    border: solid var(--color-on-primary); border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0); transition: transform .15s;
+}
+.settings-modal input[type="checkbox"]:checked { background: var(--color-primary); border-color: var(--color-primary); }
+.settings-modal input[type="checkbox"]:checked::after { transform: rotate(45deg) scale(1); }
+.set-check:hover input[type="checkbox"] { border-color: var(--color-primary); }
+
+/* ---------- Custom cursor ---------- */
+html { cursor: var(--cur-arrow) 4 2, auto; }
+a, button, summary, select, label[for], [role="tab"], [role="button"],
+input[type="range"], input[type="color"], .swatch, .set-link {
+    cursor: var(--cur-link) 4 2, pointer !important;
+}
+button:disabled { cursor: var(--cur-arrow) 4 2, default !important; }
+input[type="text"], input[type="search"], input[type="email"], textarea { cursor: text !important; }
+/* Checkboxes: no hand, the cursor just hovers */
+input[type="checkbox"], .set-check, .set-check * { cursor: var(--cur-arrow) 4 2, default !important; }
+
+/* ---------- Custom scrollbar ---------- */
+@supports selector(::-webkit-scrollbar) {
+    * { scrollbar-width: auto !important; scrollbar-color: auto !important; }
+    ::-webkit-scrollbar { width: 12px; height: 12px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(128, 128, 128, .4);
+        background-clip: content-box;
+        border: 3px solid transparent;
+        border-radius: var(--ui-r-sm);
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, .65); background-clip: content-box; }
+    ::-webkit-scrollbar-thumb:active { background: var(--color-primary); background-clip: content-box; }
+    ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+    ::-webkit-scrollbar-corner { background: transparent; }
+}
+@supports not selector(::-webkit-scrollbar) {
+    * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, .5) transparent; }
+}
+
+/* ---------- Loading circle: centered ---------- */
+main.page-loading {
+    position: fixed; inset: var(--header-h, 3.75rem) 0 0 0;
+    display: flex !important; align-items: center; justify-content: center;
+    grid-template-columns: none !important;
+    margin: 0; padding: 0 !important; min-height: 0;
+    background: transparent; border: 0;
+}
+.loader-ring { flex: none; margin: 0; }
+
+/* ---------- List editors underline on hover (works for links and plain names) ---------- */
+.page-list .meta .editors li > a,
+.page-list .meta .editors li > p {
+    text-decoration-line: none;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.25em;
+}
+.page-list .meta .editors li:hover > a,
+.page-list .meta .editors li:hover > p {
+    text-decoration-line: underline !important;
+}
