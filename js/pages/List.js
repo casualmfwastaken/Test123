@@ -215,7 +215,7 @@ export default {
                 <transition-group name="flip" tag="ul" class="list" :class="{ busy: timeBusy }" v-if="list && !(plus && plusLoading)">
                     <li v-for="item in filteredView" :key="item.key || item.rank" class="row" :class="{ active: item.key === selectedItem?.key, error: !item.level }">
                         <span class="rank">
-                            <template v-if="item.unverified">&mdash;</template>
+                            <template v-if="item.unverified">#{{ item.urank }}</template>
                             <template v-else-if="item.rank <= 150">#{{ item.rank }}</template>
                             <template v-else>Legacy</template>
                         </span>
