@@ -52,8 +52,10 @@ const safeEmbed = (url) => {
 
 // Unverified levels (no verifier) get no rank and don't take up a spot in the ranking.
 // Unverified levels (no verifier, or listed in _unverified_list.json) get no rank.
+// Verified levels get a Placed rank. Unverified levels get their own separate numbering.
 function build(entries) {
     let r = 0;
+    let u = 0;
     return (entries || []).map((e) => {
         const level = e?.[0];
         const unverified =
@@ -64,6 +66,7 @@ function build(entries) {
             key: keyOf(e || []),
             unverified,
             rank: unverified ? null : ++r,
+            urank: unverified ? ++u : null,
         };
     });
 }
