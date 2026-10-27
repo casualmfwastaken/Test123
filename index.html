@@ -6,6 +6,10 @@
         <meta name="theme-color" content="#000000" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <title>Your List Name</title>
+        <style>[v-cloak] { display: none !important; }</style>
+<script>
+    try { if (JSON.parse(localStorage.getItem('dark')) !== false) document.documentElement.style.background = '#1b1b20'; } catch (e) {}
+</script>
 
         <!-- Replace your server icon by uploading an image file named "list_icon.png"-->
         <link rel="icon" href="/list_icon.png" />
