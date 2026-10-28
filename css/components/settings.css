@@ -78,14 +78,6 @@ main.page-loading { display: grid; place-items: center; min-height: 60vh; }
 .settings-modal input[type="checkbox"]:checked::after { transform: rotate(45deg) scale(1); }
 .set-check:hover input[type="checkbox"] { border-color: var(--color-primary); }
 
-/* ---------- Custom cursor ---------- */
-html { cursor: var(--cur-arrow) 4 2, auto; }
-a, button, summary, select, label[for], [role="tab"], [role="button"],
-input[type="range"], input[type="color"], .swatch, .set-link {
-    cursor: var(--cur-link) 4 2, pointer !important;
-}
-button:disabled { cursor: var(--cur-arrow) 4 2, default !important; }
-input[type="text"], input[type="search"], input[type="email"], textarea { cursor: text !important; }
 /* Checkboxes: no hand, the cursor just hovers */
 input[type="checkbox"], .set-check, .set-check * { cursor: var(--cur-arrow) 4 2, default !important; }
 
