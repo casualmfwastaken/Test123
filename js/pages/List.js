@@ -114,16 +114,6 @@ async function fetchHistory() {
     }
 }
 
-// Difficulty faces: { "level-file": "insane", ... }  ->  /assets/faces/insane.png
-async function fetchFaces() {
-    try {
-        const data = await getJSON(`${dir}/_faces.json`);
-        return data && typeof data === "object" && !Array.isArray(data) ? data : {};
-    } catch {
-        return {};
-    }
-}
-
 async function fetchLevel(path) {
     try {
         const level = await getJSON(`${dir}/${path}.json`);
@@ -162,7 +152,7 @@ async function fetchPlus() {
 }
 
 export default {
-        components: { Spinner, LevelAuthors },
+    components: { Spinner, LevelAuthors },
     template: `
         <main v-if="loading" class="page-loading">
             <Spinner></Spinner>
@@ -221,7 +211,6 @@ export default {
                         </span>
                         <button type="button" class="name" @click="selectLevel(item.key)">
                             <span class="name-main">
-                                <img v-if="faceSrc(item.level)" class="diff-face" :src="faceSrc(item.level)" :alt="faceName(item.level)" :title="faceName(item.level)" loading="lazy" @error="hideImg">
                                 <span class="type-label-lg">{{ item.level?.name || \`Error (\${item.err}.json)\` }}</span>
                             </span>
                             <small class="delta" v-if="delta(item)">{{ delta(item) }}</small>
@@ -255,10 +244,7 @@ export default {
                 <transition name="swap" mode="out-in">
                     <div class="level" v-if="level" :key="selectedItem.key">
                         <div class="level-header">
-                            <h1>
-                         <img v-if="faceSrc(level)" class="diff-face diff-face--lg" :src="faceSrc(level)" :alt="faceName(level)" :title="faceName(level)" @error="hideImg">
-                                  {{ level.name }}
-                                    </h1>
+                            <h1>{{ level.name }}</h1>
                             <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
                         </div>
 
@@ -386,7 +372,6 @@ export default {
     data: () => ({
         list: [],
         editors: [],
-        faces: {},
         loading: true,
         selectedKey: null,
         query: "",
@@ -432,11 +417,6 @@ export default {
                 if (k) m[k] = e;
             }
             return m;
-        },
-            facesLower() {
-    const m = {};
-    for (const [k, v] of Object.entries(this.faces || {})) m[k.toLowerCase()] = v;
-    return m;
         },
         // null = currently unverified, undefined = not on the current list
         currentRank() {
@@ -581,15 +561,6 @@ export default {
         versionFor(i) {
             return this.history[i]?.version || `v${VERSION_MAJOR}.${i}`;
         },
-       faceName(level) {
-    if (!level) return "";
-    const p = String(level.path || "");
-    return String(this.faces[p] || this.facesLower[p.toLowerCase()] || level.difficulty || "");
-},
-        faceSrc(level) {
-            const n = this.faceName(level);
-            return n ? `/assets/faces/${encodeURIComponent(n)}.png` : "";
-        },
         hideImg(e) {
             e.target.style.display = "none";
         },
@@ -607,16 +578,14 @@ export default {
         async load() {
             this.loading = true;
             this.errors = [];
-            const [list, editors, history, faces] = await Promise.all([
+            const [list, editors, history] = await Promise.all([
                 safe(fetchList),
                 safe(fetchEditors),
                 fetchHistory(),
-                fetchFaces(),
             ]);
             this.list = list;
             this.editors = editors;
             this.history = history;
-            this.faces = faces;
             this.timeIndex = this.sliderIndex = this.history.length;
 
             if (!Array.isArray(this.list)) {
@@ -631,13 +600,6 @@ export default {
                 if (!this.editors) {
                     this.errors.push("Failed to load list editors.");
                 }
-                const noFace = this.list
-                    .map(([l]) => l)
-                    .filter((l) => l && !this.faceName(l))
-                    .map((l) => l.path);
-                if (noFace.length) {
-                    console.warn("Levels without a difficulty face (add them to _faces.json):", noFace);
-                }
             }
 
             this.selectedKey = this.tabView[0]?.key ?? null;
@@ -650,13 +612,6 @@ export default {
             }
             this.plusLoading = true;
             this.plusData = await fetchPlus();
-            const noFace = (this.plusData.levels || [])
-    .map(([l]) => l)
-    .filter((l) => l && !this.faceName(l))
-    .map((l) => l.path);
-if (noFace.length) {
-    console.warn("PLUS levels without a difficulty face (add them to _faces.json):", noFace);
-}
             this.plusLoaded = !this.plusData.error;
             this.plusLoading = false;
             this.selectedKey = this.tabView[0]?.key ?? null;
